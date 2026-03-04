@@ -28,10 +28,10 @@ try {
   const loaderDest = path.join(__dirname, 'app', 'lib', 'wasm_loader.js');
 
   let loaderContent = fs.readFileSync(loaderSource, 'utf-8');
-  // Replace import.meta.url with empty string for Next.js compatibility
+  // Replace import.meta.url with public path for Next.js compatibility
   loaderContent = loaderContent.replace(
-    /input\s*=\s*new URL\(.*import\.meta\.url.*\)/,
-    'input = ""'
+    /module_or_path\s*=\s*new URL\('yt_subtitle_wasm_bg\.wasm',\s*import\.meta\.url\)/,
+    "module_or_path = '/yt_subtitle_wasm_bg.wasm'"
   );
 
   fs.writeFileSync(loaderDest, loaderContent);
