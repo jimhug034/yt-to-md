@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run build:wasm && next build",
+    "build": "next build",
     "build:wasm": "node build-wasm.js",
+    "build:all": "npm run build:wasm && next build",
     "start": "next start",
     "lint": "eslint"
   },
