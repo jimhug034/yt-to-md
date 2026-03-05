@@ -1,0 +1,51 @@
+{
+  "$schema": "https://github.com/oxc-project/oxc/blob/main/npm/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "warn",
+    "suspicious": "warn",
+    "pedantic": "allow",
+    "perf": "warn",
+    "restriction": "warn",
+    "style": "warn",
+    "nursery": "allow"
+  },
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "settings": {
+    "jsx-runtime": "automatic"
+  },
+  "plugins": [],
+  "ignore": [
+    "node_modules/**",
+    ".next/**",
+    "out/**",
+    "dist/**",
+    "build/**",
+    "*.config.js",
+    "*.config.ts"
+  ],
+  "rules": {
+    "correctness": {
+      "noUnusedVariables": "error",
+      "noUnusedImports": "error",
+      "useExhaustiveDependencies": "warn",
+      "useHookAtTopLevel": "error"
+    },
+    "suspicious": {
+      "noExplicitAny": "warn",
+      "noArrayIndexKey": "warn"
+    },
+    "style": {
+      "useConst": "error",
+      "noConsoleLog": "warn",
+      "useTemplate": "warn",
+      "noVar": "error"
+    },
+    "ts": {
+      "noNonNullAssertion": "warn"
+    }
+  }
+}

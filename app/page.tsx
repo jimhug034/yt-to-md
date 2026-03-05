@@ -146,46 +146,33 @@ export default function Home() {
     setSelectedLanguage(langCode);
 
     try {
-      // Fetch subtitle content using YouTube timedtext API with CORS proxy
-      const primaryProxy = 'https://corsproxy.io/?';
-      const fallbackProxy = 'https://api.allorigins.win/raw?url=';
-
-      const timedtextUrl = `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${langCode}&fmt=srv1`;
-      const encodedUrl = encodeURIComponent(timedtextUrl);
-
+      // Method 1: Try to get subtitle URL from embed page (browser-based)
       let subtitleContent: string | null = null;
 
-      // Try primary proxy first
       try {
-        const response = await fetch(`${primaryProxy}${encodedUrl}`);
+        const { getSubtitleUrl } = await import('./lib/youtube');
+        const subtitleUrl = await getSubtitleUrl(videoId, langCode);
+
+        if (subtitleUrl) {
+          const response = await fetch(subtitleUrl);
+          if (response.ok) {
+            subtitleContent = await response.text();
+          }
+        }
+      } catch (embedError) {
+        console.warn('Embed method failed:', embedError);
+      }
+
+      // Method 2: Try API route as fallback
+      if (!subtitleContent) {
+        const apiUrl = `/api/subtitles?videoId=${encodeURIComponent(videoId)}&lang=${encodeURIComponent(langCode)}`;
+        const response = await fetch(apiUrl);
+
         if (response.ok) {
-          subtitleContent = await response.text();
-        }
-      } catch (primaryError) {
-        console.warn('Primary proxy failed, trying fallback:', primaryError);
-      }
-
-      // Try fallback proxy if primary failed
-      if (!subtitleContent) {
-        try {
-          const response = await fetch(`${fallbackProxy}${encodedUrl}`);
-          if (response.ok) {
-            subtitleContent = await response.text();
+          const text = await response.text();
+          if (!text.includes('"error"') && !text.includes('<!DOCTYPE')) {
+            subtitleContent = text;
           }
-        } catch (fallbackError) {
-          console.warn('Fallback proxy failed:', fallbackError);
-        }
-      }
-
-      // If both proxies failed, try direct fetch (might fail due to CORS)
-      if (!subtitleContent) {
-        try {
-          const response = await fetch(timedtextUrl);
-          if (response.ok) {
-            subtitleContent = await response.text();
-          }
-        } catch (directError) {
-          console.warn('Direct fetch failed (expected CORS):', directError);
         }
       }
 
