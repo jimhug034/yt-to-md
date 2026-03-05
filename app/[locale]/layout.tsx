@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
+import { notFound } from 'next/navigation';
+import { locales } from '@/i18n';
+import "../globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,17 +21,31 @@ export const metadata: Metadata = {
   description: "Convert YouTube video subtitles to formatted Markdown documents with timestamps and links.",
 };
 
-export default function RootLayout({
+export default async function LocaleLayout({
   children,
-}: Readonly<{
+  params,
+}: {
   children: React.ReactNode;
-}>) {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+
+  // Validate locale
+  if (!locales.includes(locale as any)) {
+    notFound();
+  }
+
+  // Get messages for the locale
+  const messages = await getMessages();
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <NextIntlClientProvider messages={messages}>
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );

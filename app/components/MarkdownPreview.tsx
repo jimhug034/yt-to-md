@@ -2,6 +2,7 @@
 
 import { Download, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 
@@ -16,6 +17,7 @@ export function MarkdownPreview({
   videoId,
   videoTitle,
 }: MarkdownPreviewProps) {
+  const t = useTranslations('preview');
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -40,7 +42,7 @@ export function MarkdownPreview({
     <div className="w-full">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Markdown Preview
+          {t('title')}
         </h2>
         <div className="flex gap-2">
           <button
@@ -57,12 +59,12 @@ export function MarkdownPreview({
             {copied ? (
               <>
                 <Check className="h-4 w-4 text-green-500" />
-                Copied!
+                {t('copied')}
               </>
             ) : (
               <>
                 <Copy className="h-4 w-4" />
-                Copy
+                {t('copy')}
               </>
             )}
           </button>
@@ -77,7 +79,7 @@ export function MarkdownPreview({
             )}
           >
             <Download className="h-4 w-4" />
-            Download
+            {t('download')}
           </button>
         </div>
       </div>

@@ -1,22 +1,35 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Youtube, FileText, RefreshCw, AlertCircle, Clock, Languages } from 'lucide-react';
-import { UrlInput } from './components/UrlInput';
-import { LanguageSelector, SubtitleLanguage } from './components/LanguageSelector';
-import { MarkdownPreview } from './components/MarkdownPreview';
+import { Youtube, FileText, RefreshCw, AlertCircle, Clock, Languages, Globe } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
+import { useRouter, usePathname } from '@/i18n';
+import { UrlInput } from '../components/UrlInput';
+import { LanguageSelector, SubtitleLanguage } from '../components/LanguageSelector';
+import { MarkdownPreview } from '../components/MarkdownPreview';
 import {
   getVideoInfo,
   getAvailableSubtitles,
   formatTimestamp,
   type YouTubeVideoInfo,
   type SubtitleEntry,
-} from './lib/youtube';
-import { loadWASM, isWASMSupported } from './lib/wasm';
+} from '../lib/youtube';
+import { loadWASM, isWASMSupported } from '../lib/wasm';
 
 type AppStep = 'input' | 'language' | 'preview';
 
 export default function Home() {
+  const t = useTranslations();
+  const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Language switcher handler
+  const handleLanguageSwitch = () => {
+    const newLocale = locale === 'en' ? 'zh-CN' : 'en';
+    router.replace(pathname, { locale: newLocale });
+  };
+
   // State Management
   const [videoUrl, setVideoUrl] = useState('');
   const [videoId, setVideoId] = useState<string | null>(null);
@@ -59,11 +72,11 @@ export default function Home() {
           // Then fetch available languages
           await fetchAvailableLanguages(videoId);
         } else {
-          setError('Could not fetch video information. Please check the video ID and try again.');
+          setError(t('errors.fetchVideoInfo'));
           setLoading(false);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch video information');
+        setError(err instanceof Error ? err.message : t('errors.general'));
         setLoading(false);
       }
     };
@@ -76,7 +89,7 @@ export default function Home() {
     try {
       const tracks = await getAvailableSubtitles(id);
       if (tracks.length === 0) {
-        setError('No subtitles available for this video.');
+        setError(t('errors.noSubtitles'));
         setLoading(false);
         return;
       }
@@ -92,7 +105,8 @@ export default function Home() {
       setCurrentStep('language');
       setLoading(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch available languages');
+      const errorMsg = err instanceof Error ? err.message : t('errors.fetchLanguages');
+      setError(`${errorMsg} ${t('errors.fetchLanguagesWithSuggestion')}`);
       setLoading(false);
     }
   };
@@ -150,7 +164,7 @@ export default function Home() {
       let subtitleContent: string | null = null;
 
       try {
-        const { getSubtitleUrl } = await import('./lib/youtube');
+        const { getSubtitleUrl } = await import('../lib/youtube');
         const subtitleUrl = await getSubtitleUrl(videoId, langCode);
 
         if (subtitleUrl) {
@@ -177,7 +191,7 @@ export default function Home() {
       }
 
       if (!subtitleContent) {
-        throw new Error('Could not fetch subtitles. The video may not have subtitles for this language.');
+        throw new Error(t('errors.fetchSubtitles'));
       }
 
       // Parse the XML subtitle format from YouTube
@@ -214,7 +228,7 @@ export default function Home() {
       setCurrentStep('preview');
       setLoading(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch subtitles');
+      setError(err instanceof Error ? err.message : t('errors.fetchSubtitlesGeneric'));
       setLoading(false);
     }
   }, [videoId, videoInfo, videoUrl, availableLanguages]);
@@ -243,21 +257,33 @@ export default function Home() {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                  YouTube Subtitle to Markdown
+                  {t('header.title')}
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Convert YouTube subtitles to formatted Markdown
+                  {t('header.subtitle')}
                 </p>
               </div>
             </div>
-            {wasmLoaded && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-xs font-medium text-green-700 dark:text-green-400">
-                  WASM Ready
+            <div className="flex items-center gap-3">
+              {wasmLoaded && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                    {t('wasm.ready')}
+                  </span>
+                </div>
+              )}
+              <button
+                onClick={handleLanguageSwitch}
+                className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                title={locale === 'en' ? t('languageSwitcher.zh') : t('languageSwitcher.en')}
+              >
+                <Globe className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {locale === 'en' ? t('languageSwitcher.zh') : t('languageSwitcher.en')}
                 </span>
-              </div>
-            )}
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -275,7 +301,7 @@ export default function Home() {
               onClick={() => setError(null)}
               className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
             >
-              Dismiss
+              {t('common.dismiss')}
             </button>
           </div>
         )}
@@ -288,10 +314,10 @@ export default function Home() {
                 <Youtube className="h-12 w-12 text-red-600 dark:text-red-400" />
               </div>
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                Convert YouTube Subtitles to Markdown
+                {t('hero.title')}
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-400 max-w-xl mx-auto">
-                Paste a YouTube video URL below to extract subtitles and convert them to a beautifully formatted Markdown document.
+                {t('hero.description')}
               </p>
             </div>
 
@@ -304,10 +330,10 @@ export default function Home() {
                   <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  Clean Markdown
+                  {t('features.cleanMarkdown.title')}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Get properly formatted Markdown with timestamps, clickable links, and video metadata.
+                  {t('features.cleanMarkdown.description')}
                 </p>
               </div>
 
@@ -316,10 +342,10 @@ export default function Home() {
                   <Languages className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  Multi-language
+                  {t('features.multiLanguage.title')}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Choose from available subtitle languages including auto-generated captions.
+                  {t('features.multiLanguage.description')}
                 </p>
               </div>
 
@@ -328,10 +354,10 @@ export default function Home() {
                   <RefreshCw className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  Fast & Reliable
+                  {t('features.fastReliable.title')}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Powered by WebAssembly for fast parsing with JavaScript fallback.
+                  {t('features.fastReliable.description')}
                 </p>
               </div>
             </div>
@@ -376,7 +402,7 @@ export default function Home() {
             {/* Language Selector */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Select Subtitle Language
+                {t('language.select')}
               </h3>
               <LanguageSelector
                 languages={availableLanguages}
@@ -391,7 +417,7 @@ export default function Home() {
               onClick={handleReset}
               className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
-              Start over with a different video
+              {t('language.startOver')}
             </button>
           </div>
         )}
@@ -414,7 +440,7 @@ export default function Home() {
                     {videoInfo?.title}
                   </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {subtitleEntries.length} subtitle entries
+                    {subtitleEntries.length} {t('preview.entries')}
                   </p>
                 </div>
               </div>
@@ -423,7 +449,7 @@ export default function Home() {
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 <RefreshCw className="h-4 w-4" />
-                New Video
+                {t('preview.newVideo')}
               </button>
             </div>
 
@@ -444,7 +470,7 @@ export default function Home() {
               <div className="absolute top-0 left-0 w-16 h-16 border-4 border-blue-600 rounded-full border-t-transparent animate-spin" />
             </div>
             <p className="mt-4 text-gray-600 dark:text-gray-400">
-              {currentStep === 'language' ? 'Fetching available languages...' : 'Converting subtitles...'}
+              {currentStep === 'language' ? t('preview.fetchingLanguages') : t('preview.converting')}
             </p>
           </div>
         )}
@@ -454,7 +480,7 @@ export default function Home() {
       <footer className="border-t border-gray-200 dark:border-gray-800 mt-16">
         <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-            YouTube Subtitle to Markdown Converter • Built with Next.js
+            {t('footer.text')}
           </p>
         </div>
       </footer>

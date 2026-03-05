@@ -4,12 +4,13 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // List of Invidious instances to try (open-source YouTube frontends)
+// Updated from https://instances.invidious.io/ - verified working instances
 const INVIDIOUS_INSTANCES = [
-  'https://vid.puffyan.us',
-  'https://invidious.snopyta.org',
-  'https://invidious.kavin.rocks',
+  'https://inv.nadeko.net',
   'https://yewtu.be',
-  'https://invidious.namazso.eu',
+  'https://invidious.nerdvpn.de',
+  'https://invidious.privacydev.net',
+  'https://invidious.perennialte.ch',
 ];
 
 /**
@@ -41,132 +42,159 @@ export async function GET(request: NextRequest) {
 
 /**
  * Get available subtitle languages using Invidious API
+ * Includes retry logic for failed requests
  */
 async function getAvailableLanguages(videoId: string): Promise<NextResponse> {
-  // Try each Invidious instance
+  // Try each Invidious instance with retry
   for (const instance of INVIDIOUS_INSTANCES) {
-    try {
-      const apiUrl = `${instance}/api/v1/videos/${videoId}?fields=captions`;
+    // Try up to 2 times per instance
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const apiUrl = `${instance}/api/v1/videos/${videoId}?fields=captions`;
 
-      const response = await fetch(apiUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-        signal: AbortSignal.timeout(10000),
-      });
+        const response = await fetch(apiUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+          signal: AbortSignal.timeout(15000), // Increased from 10s to 15s
+        });
 
-      if (!response.ok) {
-        console.warn(`${instance} returned ${response.status}`);
-        continue;
+        if (!response.ok) {
+          console.warn(`[Invidious] ${instance} returned ${response.status} (attempt ${attempt}/2)`);
+          if (attempt < 2) continue; // Retry on non-200 status
+          break;
+        }
+
+        const data = await response.json();
+
+        if (!data.captions || !Array.isArray(data.captions)) {
+          console.warn(`[Invidious] ${instance} returned no captions (attempt ${attempt}/2)`);
+          if (attempt < 2) continue;
+          break;
+        }
+
+        // Build XML response similar to YouTube timedtext API
+        let xml = '<?xml version="1.0" encoding="utf-8"?><transcript>';
+
+        for (const caption of data.captions) {
+          const langCode = caption.languageCode || caption.code || 'en';
+          const langName = caption.label || caption.languageName || caption.languageCode || 'Unknown';
+          const isAuto = caption.label?.toLowerCase().includes('auto') || false;
+
+          xml += `<track lang_code="${langCode}" lang_name="${langName}" lang_translit="" lang_original=""${isAuto ? ' kind="asr"' : ''}/>`;
+        }
+
+        xml += '</transcript>';
+
+        console.log(`[Invidious] Successfully fetched captions from ${instance} (${data.captions.length} tracks)`);
+        return new NextResponse(xml, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/xml; charset=utf-8',
+            'Access-Control-Allow-Origin': '*',
+          },
+        });
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.warn(`[Invidious] ${instance} failed on attempt ${attempt}/2: ${errorMsg}`);
+        if (attempt === 2) {
+          // Last attempt for this instance failed, try next instance
+          break;
+        }
+        // Wait a bit before retry
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
-
-      const data = await response.json();
-
-      if (!data.captions || !Array.isArray(data.captions)) {
-        console.warn(`${instance} returned no captions`);
-        continue;
-      }
-
-      // Build XML response similar to YouTube timedtext API
-      let xml = '<?xml version="1.0" encoding="utf-8"?><transcript>';
-
-      for (const caption of data.captions) {
-        const langCode = caption.languageCode || caption.code || 'en';
-        const langName = caption.label || caption.languageName || caption.languageCode || 'Unknown';
-        const isAuto = caption.label?.toLowerCase().includes('auto') || false;
-
-        xml += `<track lang_code="${langCode}" lang_name="${langName}" lang_translit="" lang_original=""${isAuto ? ' kind="asr"' : ''}/>`;
-      }
-
-      xml += '</transcript>';
-
-      return new NextResponse(xml, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/xml; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
-        },
-      });
-    } catch (error) {
-      console.warn(`${instance} failed:`, error instanceof Error ? error.message : String(error));
-      continue;
     }
   }
 
   // All instances failed, return fallback
-  console.error('All Invidious instances failed');
+  console.error('[Invidious] All instances failed, using fallback language list');
   return generateFallbackResponse();
 }
 
 /**
  * Get subtitle content using Invidious API
+ * Includes retry logic for failed requests
  */
 async function getSubtitleContent(videoId: string, langCode: string): Promise<NextResponse> {
-  // Try each Invidious instance
+  // Try each Invidious instance with retry
   for (const instance of INVIDIOUS_INSTANCES) {
-    try {
-      // First get the video info to find the caption URL
-      const apiUrl = `${instance}/api/v1/videos/${videoId}?fields=captions`;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        // First get the video info to find the caption URL
+        const apiUrl = `${instance}/api/v1/videos/${videoId}?fields=captions`;
 
-      const response = await fetch(apiUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-        signal: AbortSignal.timeout(10000),
-      });
+        const response = await fetch(apiUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+          signal: AbortSignal.timeout(15000), // Increased from 10s to 15s
+        });
 
-      if (!response.ok) {
-        continue;
+        if (!response.ok) {
+          if (attempt < 2) continue;
+          break;
+        }
+
+        const data = await response.json();
+
+        if (!data.captions || !Array.isArray(data.captions)) {
+          if (attempt < 2) continue;
+          break;
+        }
+
+        // Find the matching caption
+        const caption = data.captions.find((c: any) =>
+          c.languageCode === langCode || c.code === langCode
+        );
+
+        if (!caption || !caption.url) {
+          if (attempt < 2) continue;
+          break;
+        }
+
+        // Fetch the actual subtitle content
+        const subtitleResponse = await fetch(`${instance}${caption.url}`, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+          signal: AbortSignal.timeout(15000), // Increased from 10s to 15s
+        });
+
+        if (!subtitleResponse.ok) {
+          if (attempt < 2) continue;
+          break;
+        }
+
+        // Invidious returns JSON format, convert to XML
+        const subtitleData = await subtitleResponse.json();
+        const xml = convertInvidiousSubtitlesToXml(subtitleData);
+
+        console.log(`[Invidious] Successfully fetched subtitle content from ${instance} for ${langCode}`);
+        return new NextResponse(xml, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/xml; charset=utf-8',
+            'Access-Control-Allow-Origin': '*',
+          },
+        });
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.warn(`[Invidious] ${instance} failed for ${langCode} on attempt ${attempt}/2: ${errorMsg}`);
+        if (attempt === 2) {
+          break;
+        }
+        // Wait a bit before retry
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
-
-      const data = await response.json();
-
-      if (!data.captions || !Array.isArray(data.captions)) {
-        continue;
-      }
-
-      // Find the matching caption
-      const caption = data.captions.find((c: any) =>
-        c.languageCode === langCode || c.code === langCode
-      );
-
-      if (!caption || !caption.url) {
-        continue;
-      }
-
-      // Fetch the actual subtitle content
-      const subtitleResponse = await fetch(`${instance}${caption.url}`, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-        signal: AbortSignal.timeout(10000),
-      });
-
-      if (!subtitleResponse.ok) {
-        continue;
-      }
-
-      // Invidious returns JSON format, convert to XML
-      const subtitleData = await subtitleResponse.json();
-      const xml = convertInvidiousSubtitlesToXml(subtitleData);
-
-      return new NextResponse(xml, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/xml; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
-        },
-      });
-    } catch (error) {
-      console.warn(`${instance} failed:`, error instanceof Error ? error.message : String(error));
-      continue;
     }
   }
 
+  console.error(`[Invidious] All instances failed to fetch subtitle content for ${langCode}`);
   return NextResponse.json(
     {
       error: 'Failed to fetch subtitle content from all sources',
-      hint: 'The video may not have subtitles for the selected language.',
+      hint: 'The video may not have subtitles for the selected language. Please try again later.',
     },
     { status: 500 }
   );
@@ -209,11 +237,37 @@ function escapeXml(text: string): string {
 
 /**
  * Generate fallback response with common languages
+ * Used when all Invidious instances fail
  */
 function generateFallbackResponse(): NextResponse {
-  const xml = `<?xml version="1.0" encoding="utf-8"?><transcript>
-    <track lang_code="en" lang_name="English" lang_translit="" lang_original=""/>
-  </transcript>`;
+  const commonLanguages = [
+    { code: 'en', name: 'English' },
+    { code: 'zh', name: 'Chinese' },
+    { code: 'zh-Hans', name: 'Chinese (Simplified)' },
+    { code: 'zh-Hant', name: 'Chinese (Traditional)' },
+    { code: 'ja', name: 'Japanese' },
+    { code: 'ko', name: 'Korean' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'fr', name: 'French' },
+    { code: 'de', name: 'German' },
+    { code: 'pt', name: 'Portuguese' },
+    { code: 'ru', name: 'Russian' },
+    { code: 'it', name: 'Italian' },
+    { code: 'ar', name: 'Arabic' },
+    { code: 'hi', name: 'Hindi' },
+    { code: 'th', name: 'Thai' },
+    { code: 'vi', name: 'Vietnamese' },
+    { code: 'id', name: 'Indonesian' },
+    { code: 'tr', name: 'Turkish' },
+    { code: 'pl', name: 'Polish' },
+    { code: 'nl', name: 'Dutch' },
+  ];
+
+  let xml = '<?xml version="1.0" encoding="utf-8"?><transcript>';
+  for (const lang of commonLanguages) {
+    xml += `<track lang_code="${lang.code}" lang_name="${lang.name}" lang_translit="" lang_original=""/>`;
+  }
+  xml += '</transcript>';
 
   return new NextResponse(xml, {
     status: 200,

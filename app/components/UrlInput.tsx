@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Youtube } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '../lib/utils';
 
 interface UrlInputProps {
@@ -10,6 +11,7 @@ interface UrlInputProps {
 }
 
 export function UrlInput({ onSubmit, isLoading = false }: UrlInputProps) {
+  const t = useTranslations('input');
   const [url, setUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -35,13 +37,13 @@ export function UrlInput({ onSubmit, isLoading = false }: UrlInputProps) {
     setError(null);
 
     if (!url.trim()) {
-      setError('Please enter a YouTube URL or video ID');
+      setError(t('errorRequired'));
       return;
     }
 
     const videoId = extractVideoId(url);
     if (!videoId) {
-      setError('Invalid YouTube URL or video ID. Please check and try again.');
+      setError(t('errorInvalid'));
       return;
     }
 
@@ -60,7 +62,7 @@ export function UrlInput({ onSubmit, isLoading = false }: UrlInputProps) {
               setUrl(e.target.value);
               setError(null);
             }}
-            placeholder="Enter YouTube URL or video ID..."
+            placeholder={t('placeholder')}
             className={cn(
               "w-full pl-10 pr-4 py-3 rounded-lg border",
               "bg-white dark:bg-gray-800",
@@ -84,7 +86,7 @@ export function UrlInput({ onSubmit, isLoading = false }: UrlInputProps) {
             "whitespace-nowrap"
           )}
         >
-          {isLoading ? 'Loading...' : 'Convert'}
+          {isLoading ? t('buttonLoading') : t('button')}
         </button>
       </div>
       {error && (
