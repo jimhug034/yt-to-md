@@ -26,7 +26,7 @@ async function getWasmModule(): Promise<WasmLoader> {
 
   // Dynamically import the WASM loader from the lib directory
   // @ts-ignore - Dynamic import of JS file without types
-  const loader = await import('./wasm_loader.js');
+  const loader = await import("./wasm_loader.js");
   wasmModule = loader as WasmLoader;
   return wasmModule;
 }
@@ -43,7 +43,7 @@ export async function loadWASM(): Promise<void> {
     try {
       const loader = await getWasmModule();
       // Initialize with the path to the WASM file in the public directory
-      await loader.default('/yt_subtitle_wasm_bg.wasm');
+      await loader.default("/yt_subtitle_wasm_bg.wasm");
     } catch (error) {
       wasmInitPromise = null;
       throw new Error(`Failed to initialize WASM module: ${error}`);
@@ -99,7 +99,7 @@ export async function toMarkdownWASM(
     title?: string;
     url?: string;
     duration?: string;
-  } = {}
+  } = {},
 ): Promise<string> {
   await ensureInitialized();
   const loader = await getWasmModule();
@@ -113,14 +113,14 @@ export async function toMarkdownWASM(
  */
 export async function parseSubtitlesWASM(
   content: string,
-  format: 'srt' | 'vtt' | 'ttml'
+  format: "srt" | "vtt" | "ttml",
 ): Promise<any[]> {
   switch (format) {
-    case 'srt':
+    case "srt":
       return parseSRTWASM(content);
-    case 'vtt':
+    case "vtt":
       return parseVTTWASM(content);
-    case 'ttml':
+    case "ttml":
       return parseTTMLWASM(content);
     default:
       throw new Error(`Unsupported subtitle format: ${format}`);
@@ -139,7 +139,7 @@ export function cleanupWASM(): void {
  * Check if WASM is supported in the current browser
  */
 export function isWASMSupported(): boolean {
-  return typeof WebAssembly === 'object' && typeof WebAssembly.instantiate === 'function';
+  return typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function";
 }
 
 /**
@@ -156,7 +156,7 @@ export interface WASMFeatures {
 export function getWASMFeatures(): WASMFeatures {
   return {
     supported: isWASMSupported(),
-    streaming: typeof WebAssembly.instantiateStreaming === 'function',
+    streaming: typeof WebAssembly.instantiateStreaming === "function",
     threads: false, // Requires SharedArrayBuffer which needs specific headers
     simd: false, // Check WebAssembly SIMD support
     exceptions: false, // Check WebAssembly exceptions support

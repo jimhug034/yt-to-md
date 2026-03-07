@@ -10,14 +10,17 @@
 ## 浏览器手动测试步骤
 
 ### 1. 启动应用
+
 ```bash
 npm run dev
 ```
+
 访问 http://localhost:3000
 
 ### 2. 测试紧凑模式
 
 #### 步骤:
+
 1. 输入一个 YouTube 视频 URL（建议使用有中文字幕的视频）
    - 示例: `https://www.youtube.com/watch?v=dQw4w9WgXcQ`
 
@@ -34,6 +37,7 @@ npm run dev
 ### 3. 测试时间戳开关
 
 #### 步骤:
+
 1. 在紧凑模式关闭的状态下，开启时间戳
    - 每行应该有 `[00:00]` 格式的时间戳链接
 
@@ -43,6 +47,7 @@ npm run dev
 ## 输出示例对比
 
 ### 原始格式 (Compact Mode OFF, Timestamps ON)
+
 ```markdown
 [00:00](url) 大家好
 
@@ -54,11 +59,13 @@ npm run dev
 ```
 
 ### 紧凑格式 (Compact Mode ON, Timestamps OFF)
+
 ```markdown
 大家好，今天我们来讨论一个有趣的话题，关于人工智能的发展。这个领域最近取得了很大的进步，特别是在深度学习和自然语言处理方面。让我们一起探讨这些技术是如何改变我们的生活的。
 ```
 
 ### 紧凑格式 + 时间戳 (Compact Mode ON, Timestamps ON)
+
 ```markdown
 [00:00](url) 大家好，今天我们来讨论一个有趣的话题，关于人工智能的发展。
 
@@ -68,11 +75,13 @@ npm run dev
 ## 自动化测试
 
 运行 E2E 测试:
+
 ```bash
 npx playwright test e2e/suite-07-format-options.spec.ts
 ```
 
 查看测试报告:
+
 ```bash
 npx playwright show-report
 ```
@@ -80,6 +89,7 @@ npx playwright show-report
 ## API 测试
 
 直接测试字幕处理 API:
+
 ```bash
 # 获取字幕
 curl "http://localhost:3000/api/subtitles?videoId=VIDEO_ID&lang=zh"
@@ -88,6 +98,7 @@ curl "http://localhost:3000/api/subtitles?videoId=VIDEO_ID&lang=zh"
 ## 单元测试
 
 测试字幕处理逻辑:
+
 ```bash
 node -e "
 const { processSubtitles } = require('./app/lib/subtitle-processor');

@@ -54,8 +54,7 @@ async function getAvailableLanguages(videoId: string): Promise<NextResponse> {
 
       const response = await fetch(apiUrl, {
         headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         },
         signal: AbortSignal.timeout(REQUEST_TIMEOUT),
       });
@@ -77,11 +76,7 @@ async function getAvailableLanguages(videoId: string): Promise<NextResponse> {
 
       for (const caption of data.captions) {
         const langCode = caption.languageCode || caption.code || "en";
-        const langName =
-          caption.label ||
-          caption.languageName ||
-          caption.languageCode ||
-          "Unknown";
+        const langName = caption.label || caption.languageName || caption.languageCode || "Unknown";
         const isAuto = caption.label?.toLowerCase().includes("auto") || false;
 
         xml += `<track lang_code="${langCode}" lang_name="${langName}" lang_translit="" lang_original=""${isAuto ? ' kind="asr"' : ""}/>`;
@@ -107,9 +102,7 @@ async function getAvailableLanguages(videoId: string): Promise<NextResponse> {
   }
 
   // All instances failed, return fallback
-  console.error(
-    "[Invidious] All instances failed, using fallback language list",
-  );
+  console.error("[Invidious] All instances failed, using fallback language list");
   return generateFallbackResponse();
 }
 
@@ -117,10 +110,7 @@ async function getAvailableLanguages(videoId: string): Promise<NextResponse> {
  * Get subtitle content using Invidious API
  * Includes retry logic for failed requests
  */
-async function getSubtitleContent(
-  videoId: string,
-  langCode: string,
-): Promise<NextResponse> {
+async function getSubtitleContent(videoId: string, langCode: string): Promise<NextResponse> {
   // Try each Invidious instance (no retry for faster fallback)
   for (const instance of INVIDIOUS_INSTANCES) {
     try {
@@ -129,8 +119,7 @@ async function getSubtitleContent(
 
       const response = await fetch(apiUrl, {
         headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         },
         signal: AbortSignal.timeout(REQUEST_TIMEOUT),
       });
@@ -157,8 +146,7 @@ async function getSubtitleContent(
       // Fetch the actual subtitle content
       const subtitleResponse = await fetch(`${instance}${caption.url}`, {
         headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         },
         signal: AbortSignal.timeout(REQUEST_TIMEOUT),
       });
@@ -183,16 +171,12 @@ async function getSubtitleContent(
       });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.warn(
-        `[Invidious] ${instance} failed for ${langCode}: ${errorMsg}`,
-      );
+      console.warn(`[Invidious] ${instance} failed for ${langCode}: ${errorMsg}`);
       // Continue to next instance
     }
   }
 
-  console.error(
-    `[Invidious] All instances failed to fetch subtitle content for ${langCode}`,
-  );
+  console.error(`[Invidious] All instances failed to fetch subtitle content for ${langCode}`);
   return NextResponse.json(
     {
       error: "Failed to fetch subtitle content from all sources",

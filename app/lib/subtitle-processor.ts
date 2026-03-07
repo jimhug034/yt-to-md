@@ -7,7 +7,7 @@
  * - 高效的字符串操作
  */
 
-import type { SubtitleEntry } from './youtube';
+import type { SubtitleEntry } from "./youtube";
 
 // WASM 模块懒加载
 let wasmModule: any = null;
@@ -22,13 +22,13 @@ async function initWASM(): Promise<any> {
 
   wasmInitPromise = (async () => {
     try {
-      const module = await import('./wasm/yt_subtitle_wasm');
+      const module = await import("./wasm/yt_subtitle_wasm");
       await module.default();
       wasmModule = module;
-      console.log('[WASM] Subtitle processor loaded');
+      console.log("[WASM] Subtitle processor loaded");
       return module;
     } catch (error) {
-      console.warn('[WASM] Failed to load, using JS fallback:', error);
+      console.warn("[WASM] Failed to load, using JS fallback:", error);
       return null;
     }
   })();
@@ -75,16 +75,16 @@ function entriesToWasmFormat(entries: SubtitleEntry[]): string {
  */
 export async function processSubtitles(
   entries: SubtitleEntry[],
-  options: SubtitleProcessorOptions = {}
+  options: SubtitleProcessorOptions = {},
 ): Promise<string> {
   const {
     includeTimestamps = false,
     compactMode = true,
     sentencesPerParagraph = 4,
-    videoUrl = '',
+    videoUrl = "",
   } = options;
 
-  if (entries.length === 0) return '';
+  if (entries.length === 0) return "";
 
   // 尝试使用 WASM 处理
   try {
@@ -99,11 +99,13 @@ export async function processSubtitles(
       });
 
       const result = wasm.process_subtitles(captionsJson, optionsJson);
-      console.log(`[WASM] Processed ${entries.length} entries in ${compactMode ? 'compact' : 'original'} mode`);
+      console.log(
+        `[WASM] Processed ${entries.length} entries in ${compactMode ? "compact" : "original"} mode`,
+      );
       return result;
     }
   } catch (error) {
-    console.warn('[WASM] Processing failed, using JS fallback:', error);
+    console.warn("[WASM] Processing failed, using JS fallback:", error);
   }
 
   // Fallback: 使用 JavaScript 实现
@@ -113,18 +115,15 @@ export async function processSubtitles(
 /**
  * JavaScript fallback 实现（保留用于兼容性）
  */
-function processSubtitlesJS(
-  entries: SubtitleEntry[],
-  options: SubtitleProcessorOptions
-): string {
-  const { compactMode = true, includeTimestamps = false, videoUrl = '' } = options;
+function processSubtitlesJS(entries: SubtitleEntry[], options: SubtitleProcessorOptions): string {
+  const { compactMode = true, includeTimestamps = false, videoUrl = "" } = options;
 
   if (!compactMode) {
     // 原始模式
     return entries
       .map((entry) => {
         const text = entry.text.trim();
-        if (!text) return '';
+        if (!text) return "";
 
         if (includeTimestamps && videoUrl) {
           const timestamp = formatTimestampLink(entry.startTime, videoUrl);
@@ -133,14 +132,14 @@ function processSubtitlesJS(
         return text;
       })
       .filter((s) => s)
-      .join('\n\n');
+      .join("\n\n");
   }
 
   // 紧凑模式
   const sentences = mergeSegmentsJS(entries);
   const paragraphs = groupParagraphsJS(sentences, options.sentencesPerParagraph || 4);
 
-  return paragraphs.join('\n\n');
+  return paragraphs.join("\n\n");
 }
 
 /**
@@ -149,7 +148,7 @@ function processSubtitlesJS(
 function formatTimestampLink(startTime: number, videoUrl: string): string {
   const minutes = Math.floor(startTime / 60000);
   const seconds = Math.floor((startTime % 60000) / 1000);
-  const timestamp = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  const timestamp = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   const timeInSeconds = Math.floor(startTime / 1000);
   return `[${timestamp}](${videoUrl}&t=${timeInSeconds})`;
 }
@@ -161,7 +160,7 @@ function mergeSegmentsJS(entries: SubtitleEntry[]): string[] {
   if (entries.length === 0) return [];
 
   const sentences: string[] = [];
-  let currentSentence = '';
+  let currentSentence = "";
 
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
@@ -177,13 +176,13 @@ function mergeSegmentsJS(entries: SubtitleEntry[]): string[] {
     const trimmedText = text.trim();
     if (/[。！？.!?]$/.test(trimmedText)) {
       sentences.push(cleanTextJS(currentSentence));
-      currentSentence = '';
+      currentSentence = "";
     } else if (i < entries.length - 1) {
       const nextEntry = entries[i + 1];
       const gap = nextEntry.startTime - entry.endTime;
       if (gap > 2000 && currentSentence) {
         sentences.push(cleanTextJS(currentSentence));
-        currentSentence = '';
+        currentSentence = "";
       }
     }
   }
@@ -208,17 +207,16 @@ function groupParagraphsJS(sentences: string[], sentencesPerParagraph: number): 
     currentParagraph.push(sentences[i]);
 
     const shouldEnd =
-      currentParagraph.length >= sentencesPerParagraph ||
-      /[。！？]$/.test(sentences[i]);
+      currentParagraph.length >= sentencesPerParagraph || /[。！？]$/.test(sentences[i]);
 
     if (shouldEnd && currentParagraph.length >= 2) {
-      paragraphs.push(currentParagraph.join(' '));
+      paragraphs.push(currentParagraph.join(" "));
       currentParagraph.length = 0;
     }
   }
 
   if (currentParagraph.length > 0) {
-    paragraphs.push(currentParagraph.join(' '));
+    paragraphs.push(currentParagraph.join(" "));
   }
 
   return paragraphs;
@@ -235,10 +233,10 @@ function cleanTextJS(text: string): string {
   ];
 
   for (const pattern of fillerPatterns) {
-    cleaned = cleaned.replace(pattern, ' ');
+    cleaned = cleaned.replace(pattern, " ");
   }
 
-  return cleaned.replace(/\s+/g, ' ').trim();
+  return cleaned.replace(/\s+/g, " ").trim();
 }
 
 /**
@@ -246,7 +244,7 @@ function cleanTextJS(text: string): string {
  */
 export async function getSubtitleStats(
   entries: SubtitleEntry[],
-  processedOutput?: string
+  processedOutput?: string,
 ): Promise<{
   totalEntries: number;
   totalDuration: number;
@@ -254,7 +252,12 @@ export async function getSubtitleStats(
   wordCount: number;
 }> {
   if (entries.length === 0) {
-    return { totalEntries: 0, totalDuration: 0, averageDuration: 0, wordCount: 0 };
+    return {
+      totalEntries: 0,
+      totalDuration: 0,
+      averageDuration: 0,
+      wordCount: 0,
+    };
   }
 
   const totalDuration = entries[entries.length - 1].endTime - entries[0].startTime;
@@ -281,10 +284,10 @@ export async function getSubtitleStats(
   }
 
   // 字数估算
-  const fullText = entries.map((e) => e.text).join(' ');
+  const fullText = entries.map((e) => e.text).join(" ");
   const hasChinese = /[\u4e00-\u9fa5]/.test(fullText);
   const wordCount = hasChinese
-    ? fullText.replace(/[^\u4e00-\u9fa5]/g, '').length
+    ? fullText.replace(/[^\u4e00-\u9fa5]/g, "").length
     : fullText.split(/\s+/).filter((w) => w.length > 0).length;
 
   return {
@@ -300,9 +303,9 @@ export async function getSubtitleStats(
  */
 export function processSubtitlesSync(
   entries: SubtitleEntry[],
-  options: SubtitleProcessorOptions = {}
+  options: SubtitleProcessorOptions = {},
 ): string {
   // 这个函数只在 WASM 已加载后调用
   // 否则返回空字符串，调用者应该使用 async 版本
-  return '';
+  return "";
 }

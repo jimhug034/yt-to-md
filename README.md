@@ -20,12 +20,14 @@ A Next.js web application that converts YouTube video subtitles to formatted Mar
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd yt-subtitle-md
 ```
 
 2. Install Rust toolchain (for WASM builds):
+
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 rustup target add wasm32-unknown-unknown
@@ -33,6 +35,7 @@ cargo install wasm-pack
 ```
 
 3. Install dependencies:
+
 ```bash
 npm install
 # or
@@ -42,6 +45,7 @@ yarn install
 ```
 
 4. Build WASM module:
+
 ```bash
 npm run build:wasm
 # or
@@ -49,6 +53,7 @@ node build-wasm.js
 ```
 
 3. Run the development server:
+
 ```bash
 npm run dev
 # or
@@ -137,6 +142,7 @@ yt-subtitle-md/
 ### CORS Proxies
 
 The app uses multiple CORS proxies to work around YouTube's CORS policy:
+
 - Primary: `corsproxy.io`
 - Fallback: `api.allorigins.win`
 

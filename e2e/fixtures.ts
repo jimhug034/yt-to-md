@@ -4,8 +4,8 @@
  * Custom Playwright fixtures for the YouTube Subtitle to Markdown app
  */
 
-import { test as base, Page } from '@playwright/test';
-import { AppPage } from './helpers';
+import { test as base, Page } from "@playwright/test";
+import { AppPage } from "./helpers";
 
 // Define custom fixtures
 export type AppFixtures = {
@@ -19,4 +19,4 @@ export const test = base.extend<AppFixtures>({
   },
 });
 
-export { expect } from '@playwright/test';
+export { expect } from "@playwright/test";

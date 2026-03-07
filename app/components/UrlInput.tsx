@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Youtube } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { cn } from '../lib/utils';
+import { useState } from "react";
+import { Youtube } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { cn } from "../lib/utils";
 
 interface UrlInputProps {
   onSubmit: (videoId: string) => void;
@@ -11,8 +11,8 @@ interface UrlInputProps {
 }
 
 export function UrlInput({ onSubmit, isLoading = false }: UrlInputProps) {
-  const t = useTranslations('input');
-  const [url, setUrl] = useState('');
+  const t = useTranslations("input");
+  const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const extractVideoId = (input: string): string | null => {
@@ -37,13 +37,13 @@ export function UrlInput({ onSubmit, isLoading = false }: UrlInputProps) {
     setError(null);
 
     if (!url.trim()) {
-      setError(t('errorRequired'));
+      setError(t("errorRequired"));
       return;
     }
 
     const videoId = extractVideoId(url);
     if (!videoId) {
-      setError(t('errorInvalid'));
+      setError(t("errorInvalid"));
       return;
     }
 
@@ -62,7 +62,7 @@ export function UrlInput({ onSubmit, isLoading = false }: UrlInputProps) {
               setUrl(e.target.value);
               setError(null);
             }}
-            placeholder={t('placeholder')}
+            placeholder={t("placeholder")}
             className={cn(
               "w-full pl-10 pr-4 py-3 rounded-lg border",
               "bg-white dark:bg-gray-800",
@@ -70,7 +70,7 @@ export function UrlInput({ onSubmit, isLoading = false }: UrlInputProps) {
               "placeholder:text-gray-400",
               "focus:outline-none focus:ring-2 focus:ring-blue-500",
               "disabled:opacity-50 disabled:cursor-not-allowed",
-              error && "border-red-500 focus:ring-red-500"
+              error && "border-red-500 focus:ring-red-500",
             )}
             disabled={isLoading}
           />
@@ -83,15 +83,13 @@ export function UrlInput({ onSubmit, isLoading = false }: UrlInputProps) {
             "bg-blue-600 hover:bg-blue-700 text-white",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             "transition-colors duration-200",
-            "whitespace-nowrap"
+            "whitespace-nowrap",
           )}
         >
-          {isLoading ? t('buttonLoading') : t('button')}
+          {isLoading ? t("buttonLoading") : t("button")}
         </button>
       </div>
-      {error && (
-        <p className="mt-2 text-sm text-red-500">{error}</p>
-      )}
+      {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
     </form>
   );
 }

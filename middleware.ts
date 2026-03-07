@@ -1,14 +1,14 @@
-import createMiddleware from 'next-intl/middleware';
-import { locales, defaultLocale } from './i18n';
+import createMiddleware from "next-intl/middleware";
+import { locales, defaultLocale } from "./i18n";
 
 export default createMiddleware({
   locales,
   defaultLocale,
-  localePrefix: 'as-needed',
+  localePrefix: "as-needed",
   localeDetection: true,
 });
 
 export const config = {
   // Skip all paths that should not be internationalized
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
+  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
 };

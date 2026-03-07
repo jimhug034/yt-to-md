@@ -19,16 +19,19 @@
 ## 测试步骤
 
 ### 1. 启动开发服务器
+
 ```bash
 npm run dev
 ```
 
 ### 2. 在浏览器中打开
+
 ```
 http://localhost:3000
 ```
 
 ### 3. 测试完整流程
+
 1. 输入测试 URL: `https://www.youtube.com/watch?v=7xTGNNLPyMI`
 2. 点击转换按钮
 3. 选择字幕语言
@@ -37,11 +40,13 @@ http://localhost:3000
 ## 预期行为
 
 ### 场景 1: 客户端抓取成功（推荐环境）
+
 - 页面从 YouTube embed 页面抓取字幕
 - 显示实际可用的字幕语言
 - 可以成功获取字幕内容并生成 Markdown
 
 ### 场景 2: 网络受限（当前环境）
+
 - API 返回降级语言列表（常用语言）
 - 客户端抓取可能失败
 - 字幕内容获取可能失败
@@ -49,12 +54,14 @@ http://localhost:3000
 ## 技术说明
 
 ### 客户端抓取机制
+
 - 函数: `getTracksFromEmbed()` in `app/lib/youtube.ts`
 - 原理: 从 YouTube embed 页面提取 `ytInitialPlayerResponse`
 - 优势: 不依赖第三方服务，更可靠
 - 限制: 需要能访问 YouTube
 
 ### API 降级机制
+
 - 路由: `/api/subtitles`
 - 原理: 使用 Invidious 实例作为代理
 - 降级: 返回常用语言列表
@@ -71,6 +78,7 @@ http://localhost:3000
 ## 下一步
 
 请在能访问 YouTube 的环境中测试：
+
 1. 打开 http://localhost:3000
 2. 输入测试 URL
 3. 检查是否能正确获取字幕语言列表

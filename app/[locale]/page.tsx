@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useEffect } from 'react';
-import { Youtube, FileText, RefreshCw, AlertCircle, Clock, Languages, Globe } from 'lucide-react';
-import { useTranslations, useLocale } from 'next-intl';
-import { useRouter, usePathname } from '@/i18n';
-import { UrlInput } from '../components/UrlInput';
-import { LanguageSelector, SubtitleLanguage } from '../components/LanguageSelector';
-import { MarkdownPreview } from '../components/MarkdownPreview';
+import { useState, useCallback, useEffect } from "react";
+import { Youtube, FileText, RefreshCw, AlertCircle, Clock, Languages, Globe } from "lucide-react";
+import { useTranslations, useLocale } from "next-intl";
+import { useRouter, usePathname } from "@/i18n";
+import { UrlInput } from "../components/UrlInput";
+import { LanguageSelector, SubtitleLanguage } from "../components/LanguageSelector";
+import { MarkdownPreview } from "../components/MarkdownPreview";
 import {
   getVideoInfo,
   getAvailableSubtitles,
   type YouTubeVideoInfo,
   type SubtitleEntry,
-} from '../lib/youtube';
-import { processSubtitles, getSubtitleStats } from '../lib/subtitle-processor';
-import { loadWASM, isWASMSupported } from '../lib/wasm';
+} from "../lib/youtube";
+import { processSubtitles, getSubtitleStats } from "../lib/subtitle-processor";
+import { loadWASM, isWASMSupported } from "../lib/wasm";
 
-type AppStep = 'input' | 'language' | 'preview';
+type AppStep = "input" | "language" | "preview";
 
 export default function Home() {
   const t = useTranslations();
@@ -26,25 +26,25 @@ export default function Home() {
 
   // Language switcher handler
   const handleLanguageSwitch = () => {
-    const newLocale = locale === 'en' ? 'zh-CN' : 'en';
+    const newLocale = locale === "en" ? "zh-CN" : "en";
     router.replace(pathname, { locale: newLocale });
   };
 
   // State Management
-  const [videoUrl, setVideoUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState("");
   const [videoId, setVideoId] = useState<string | null>(null);
   const [videoInfo, setVideoInfo] = useState<YouTubeVideoInfo | null>(null);
   const [availableLanguages, setAvailableLanguages] = useState<SubtitleLanguage[]>([]);
-  const [selectedLanguage, setSelectedLanguage] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState("");
   const [subtitleEntries, setSubtitleEntries] = useState<SubtitleEntry[]>([]);
-  const [markdown, setMarkdown] = useState('');
+  const [markdown, setMarkdown] = useState("");
   const [loading, setLoading] = useState(false);
   // Format options
   const [compactMode, setCompactMode] = useState(true);
   const [includeTimestamps, setIncludeTimestamps] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wasmLoaded, setWasmLoaded] = useState(false);
-  const [currentStep, setCurrentStep] = useState<AppStep>('input');
+  const [currentStep, setCurrentStep] = useState<AppStep>("input");
 
   // Load WASM on mount
   useEffect(() => {
@@ -54,7 +54,7 @@ export default function Home() {
           setWasmLoaded(true);
         })
         .catch((err) => {
-          console.warn('WASM loading failed, will use JS fallback:', err);
+          console.warn("WASM loading failed, will use JS fallback:", err);
           setWasmLoaded(false);
         });
     }
@@ -75,11 +75,11 @@ export default function Home() {
           // Then fetch available languages
           await fetchAvailableLanguages(videoId);
         } else {
-          setError(t('errors.fetchVideoInfo'));
+          setError(t("errors.fetchVideoInfo"));
           setLoading(false);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : t('errors.general'));
+        setError(err instanceof Error ? err.message : t("errors.general"));
         setLoading(false);
       }
     };
@@ -92,7 +92,7 @@ export default function Home() {
     try {
       const tracks = await getAvailableSubtitles(id);
       if (tracks.length === 0) {
-        setError(t('errors.noSubtitles'));
+        setError(t("errors.noSubtitles"));
         setLoading(false);
         return;
       }
@@ -104,12 +104,12 @@ export default function Home() {
       }));
 
       setAvailableLanguages(languages);
-      setSelectedLanguage(languages[0]?.code || '');
-      setCurrentStep('language');
+      setSelectedLanguage(languages[0]?.code || "");
+      setCurrentStep("language");
       setLoading(false);
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : t('errors.fetchLanguages');
-      setError(`${errorMsg} ${t('errors.fetchLanguagesWithSuggestion')}`);
+      const errorMsg = err instanceof Error ? err.message : t("errors.fetchLanguages");
+      setError(`${errorMsg} ${t("errors.fetchLanguagesWithSuggestion")}`);
       setLoading(false);
     }
   };
@@ -118,8 +118,8 @@ export default function Home() {
   const handleUrlSubmit = useCallback((id: string) => {
     setVideoId(id);
     setVideoUrl(`https://www.youtube.com/watch?v=${id}`);
-    setCurrentStep('language');
-    setMarkdown('');
+    setCurrentStep("language");
+    setMarkdown("");
     setSubtitleEntries([]);
   }, []);
 
@@ -129,7 +129,9 @@ export default function Home() {
 
     // Simple XML parser for YouTube timedtext format
     // Format: <transcript><text start="0.5" dur="3.5">Text here</text>...</transcript>
-    const textMatches = xmlContent.matchAll(/<text[^>]*start="([^"]+)"[^>]*dur="([^"]+)"[^>]*>(.*?)<\/text>/gs);
+    const textMatches = xmlContent.matchAll(
+      /<text[^>]*start="([^"]+)"[^>]*dur="([^"]+)"[^>]*>(.*?)<\/text>/gs,
+    );
 
     let index = 1;
     for (const match of textMatches) {
@@ -137,12 +139,12 @@ export default function Home() {
       const duration = parseFloat(match[2]) * 1000;
       const endTime = startTime + duration;
       const text = match[3]
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'")
-        .replace(/<[^>]+>/g, '') // Remove any remaining HTML tags
+        .replace(/<[^>]+>/g, "") // Remove any remaining HTML tags
         .trim();
 
       if (text) {
@@ -155,125 +157,134 @@ export default function Home() {
   };
 
   // Handle language selection and subtitle fetching
-  const handleLanguageSelect = useCallback(async (langCode: string) => {
-    if (!videoId) {
-      console.error('[handleLanguageSelect] No videoId');
-      return;
-    }
+  const handleLanguageSelect = useCallback(
+    async (langCode: string) => {
+      if (!videoId) {
+        console.error("[handleLanguageSelect] No videoId");
+        return;
+      }
 
-    console.log('[handleLanguageSelect] Starting:', { videoId, langCode });
-    setLoading(true);
-    setError(null);
-    setSelectedLanguage(langCode);
-
-    try {
-      // Method 1: Try to get subtitle URL from embed page (browser-based)
-      let subtitleContent: string | null = null;
+      console.log("[handleLanguageSelect] Starting:", { videoId, langCode });
+      setLoading(true);
+      setError(null);
+      setSelectedLanguage(langCode);
 
       try {
-        console.log('[handleLanguageSelect] Trying embed method...');
-        const { getSubtitleUrl } = await import('../lib/youtube');
-        const subtitleUrl = await getSubtitleUrl(videoId, langCode);
+        // Method 1: Try to get subtitle URL from embed page (browser-based)
+        let subtitleContent: string | null = null;
 
-        if (subtitleUrl) {
-          console.log('[handleLanguageSelect] Subtitle URL obtained:', subtitleUrl);
-          const response = await fetch(subtitleUrl);
+        try {
+          console.log("[handleLanguageSelect] Trying embed method...");
+          const { getSubtitleUrl } = await import("../lib/youtube");
+          const subtitleUrl = await getSubtitleUrl(videoId, langCode);
+
+          if (subtitleUrl) {
+            console.log("[handleLanguageSelect] Subtitle URL obtained:", subtitleUrl);
+            const response = await fetch(subtitleUrl);
+            if (response.ok) {
+              subtitleContent = await response.text();
+              console.log(
+                "[handleLanguageSelect] Embed method success, content length:",
+                subtitleContent.length,
+              );
+            } else {
+              console.warn("[handleLanguageSelect] Embed request failed:", response.status);
+            }
+          }
+        } catch (embedError) {
+          console.warn("[handleLanguageSelect] Embed method failed:", embedError);
+        }
+
+        // Method 2: Try API route as fallback
+        if (!subtitleContent) {
+          console.log("[handleLanguageSelect] Trying API route...");
+          const apiUrl = `/api/subtitles?videoId=${encodeURIComponent(videoId)}&lang=${encodeURIComponent(langCode)}`;
+          console.log("[handleLanguageSelect] API URL:", apiUrl);
+          const response = await fetch(apiUrl);
+
+          console.log("[handleLanguageSelect] API response status:", response.status);
           if (response.ok) {
-            subtitleContent = await response.text();
-            console.log('[handleLanguageSelect] Embed method success, content length:', subtitleContent.length);
-          } else {
-            console.warn('[handleLanguageSelect] Embed request failed:', response.status);
+            const text = await response.text();
+            console.log("[handleLanguageSelect] API response length:", text.length);
+            if (!text.includes('"error"') && !text.includes("<!DOCTYPE")) {
+              subtitleContent = text;
+              console.log("[handleLanguageSelect] API method success");
+            } else {
+              console.warn(
+                "[handleLanguageSelect] API returned error or HTML:",
+                text.substring(0, 200),
+              );
+            }
           }
         }
-      } catch (embedError) {
-        console.warn('[handleLanguageSelect] Embed method failed:', embedError);
-      }
 
-      // Method 2: Try API route as fallback
-      if (!subtitleContent) {
-        console.log('[handleLanguageSelect] Trying API route...');
-        const apiUrl = `/api/subtitles?videoId=${encodeURIComponent(videoId)}&lang=${encodeURIComponent(langCode)}`;
-        console.log('[handleLanguageSelect] API URL:', apiUrl);
-        const response = await fetch(apiUrl);
-
-        console.log('[handleLanguageSelect] API response status:', response.status);
-        if (response.ok) {
-          const text = await response.text();
-          console.log('[handleLanguageSelect] API response length:', text.length);
-          if (!text.includes('"error"') && !text.includes('<!DOCTYPE')) {
-            subtitleContent = text;
-            console.log('[handleLanguageSelect] API method success');
-          } else {
-            console.warn('[handleLanguageSelect] API returned error or HTML:', text.substring(0, 200));
-          }
+        if (!subtitleContent) {
+          console.error("[handleLanguageSelect] All methods failed");
+          throw new Error(t("errors.fetchSubtitles"));
         }
+
+        // Parse the XML subtitle format from YouTube
+        const entries = parseYouTubeXML(subtitleContent);
+        setSubtitleEntries(entries);
+
+        // Generate markdown using the processor (async for WASM)
+        const languageName = availableLanguages.find((l) => l.code === langCode)?.name || langCode;
+
+        let generatedMarkdown = `# [${videoInfo?.title || "Video"}](${videoUrl})\n\n`;
+
+        // Add metadata block
+        generatedMarkdown += "> ";
+        if (videoInfo?.duration && videoInfo.duration > 0) {
+          const minutes = Math.floor(videoInfo.duration / 60);
+          const seconds = Math.floor(videoInfo.duration % 60);
+          generatedMarkdown += `Duration: ${minutes}:${seconds.toString().padStart(2, "0")} | `;
+        }
+        generatedMarkdown += `Language: ${languageName}`;
+
+        // Add stats
+        const stats = await getSubtitleStats(entries);
+        generatedMarkdown += ` | ${entries.length} segments`;
+        if (stats.wordCount > 0) {
+          generatedMarkdown += ` | ~${stats.wordCount} words`;
+        }
+        generatedMarkdown += "\n\n";
+
+        generatedMarkdown += "## Transcript\n\n";
+
+        // Process subtitles with current format options (using Rust WASM)
+        const transcript = await processSubtitles(entries, {
+          compactMode,
+          includeTimestamps,
+          videoUrl,
+        });
+        generatedMarkdown += transcript;
+
+        generatedMarkdown += "\n\n---\n\n";
+        generatedMarkdown += "*Generated by YouTube Subtitle to Markdown*\n";
+
+        setMarkdown(generatedMarkdown);
+        setCurrentStep("preview");
+        setLoading(false);
+      } catch (err) {
+        console.error("Language selection error:", err);
+        const errorMessage = err instanceof Error ? err.message : t("errors.fetchSubtitlesGeneric");
+        setError(errorMessage);
+        setLoading(false);
       }
-
-      if (!subtitleContent) {
-        console.error('[handleLanguageSelect] All methods failed');
-        throw new Error(t('errors.fetchSubtitles'));
-      }
-
-      // Parse the XML subtitle format from YouTube
-      const entries = parseYouTubeXML(subtitleContent);
-      setSubtitleEntries(entries);
-
-      // Generate markdown using the processor (async for WASM)
-      const languageName = availableLanguages.find((l) => l.code === langCode)?.name || langCode;
-
-      let generatedMarkdown = `# [${videoInfo?.title || 'Video'}](${videoUrl})\n\n`;
-
-      // Add metadata block
-      generatedMarkdown += '> ';
-      if (videoInfo?.duration && videoInfo.duration > 0) {
-        const minutes = Math.floor(videoInfo.duration / 60);
-        const seconds = Math.floor(videoInfo.duration % 60);
-        generatedMarkdown += `Duration: ${minutes}:${seconds.toString().padStart(2, '0')} | `;
-      }
-      generatedMarkdown += `Language: ${languageName}`;
-
-      // Add stats
-      const stats = await getSubtitleStats(entries);
-      generatedMarkdown += ` | ${entries.length} segments`;
-      if (stats.wordCount > 0) {
-        generatedMarkdown += ` | ~${stats.wordCount} words`;
-      }
-      generatedMarkdown += '\n\n';
-
-      generatedMarkdown += '## Transcript\n\n';
-
-      // Process subtitles with current format options (using Rust WASM)
-      const transcript = await processSubtitles(entries, {
-        compactMode,
-        includeTimestamps,
-        videoUrl,
-      });
-      generatedMarkdown += transcript;
-
-      generatedMarkdown += '\n\n---\n\n';
-      generatedMarkdown += '*Generated by YouTube Subtitle to Markdown*\n';
-
-      setMarkdown(generatedMarkdown);
-      setCurrentStep('preview');
-      setLoading(false);
-    } catch (err) {
-      console.error('Language selection error:', err);
-      const errorMessage = err instanceof Error ? err.message : t('errors.fetchSubtitlesGeneric');
-      setError(errorMessage);
-      setLoading(false);
-    }
-  }, [videoId, videoInfo, videoUrl, availableLanguages, compactMode, includeTimestamps, t]);
+    },
+    [videoId, videoInfo, videoUrl, availableLanguages, compactMode, includeTimestamps, t],
+  );
 
   // Reset to start
   const handleReset = () => {
     setVideoId(null);
     setVideoInfo(null);
     setAvailableLanguages([]);
-    setSelectedLanguage('');
+    setSelectedLanguage("");
     setSubtitleEntries([]);
-    setMarkdown('');
+    setMarkdown("");
     setError(null);
-    setCurrentStep('input');
+    setCurrentStep("input");
   };
 
   return (
@@ -288,11 +299,9 @@ export default function Home() {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {t('header.title')}
+                  {t("header.title")}
                 </h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {t('header.subtitle')}
-                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t("header.subtitle")}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -300,18 +309,18 @@ export default function Home() {
                 <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                   <span className="text-xs font-medium text-green-700 dark:text-green-400">
-                    {t('wasm.ready')}
+                    {t("wasm.ready")}
                   </span>
                 </div>
               )}
               <button
                 onClick={handleLanguageSwitch}
                 className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                title={locale === 'en' ? t('languageSwitcher.zh') : t('languageSwitcher.en')}
+                title={locale === "en" ? t("languageSwitcher.zh") : t("languageSwitcher.en")}
               >
                 <Globe className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {locale === 'en' ? t('languageSwitcher.zh') : t('languageSwitcher.en')}
+                  {locale === "en" ? t("languageSwitcher.zh") : t("languageSwitcher.en")}
                 </span>
               </button>
             </div>
@@ -332,23 +341,23 @@ export default function Home() {
               onClick={() => setError(null)}
               className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
             >
-              {t('common.dismiss')}
+              {t("common.dismiss")}
             </button>
           </div>
         )}
 
         {/* Step 1: URL Input */}
-        {currentStep === 'input' && (
+        {currentStep === "input" && (
           <div className="space-y-8">
             <div className="text-center py-12">
               <div className="inline-flex p-4 bg-red-100 dark:bg-red-900/30 rounded-full mb-6">
                 <Youtube className="h-12 w-12 text-red-600 dark:text-red-400" />
               </div>
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                {t('hero.title')}
+                {t("hero.title")}
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-400 max-w-xl mx-auto">
-                {t('hero.description')}
+                {t("hero.description")}
               </p>
             </div>
 
@@ -361,10 +370,10 @@ export default function Home() {
                   <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  {t('features.cleanMarkdown.title')}
+                  {t("features.cleanMarkdown.title")}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {t('features.cleanMarkdown.description')}
+                  {t("features.cleanMarkdown.description")}
                 </p>
               </div>
 
@@ -373,10 +382,10 @@ export default function Home() {
                   <Languages className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  {t('features.multiLanguage.title')}
+                  {t("features.multiLanguage.title")}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {t('features.multiLanguage.description')}
+                  {t("features.multiLanguage.description")}
                 </p>
               </div>
 
@@ -385,10 +394,10 @@ export default function Home() {
                   <RefreshCw className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  {t('features.fastReliable.title')}
+                  {t("features.fastReliable.title")}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {t('features.fastReliable.description')}
+                  {t("features.fastReliable.description")}
                 </p>
               </div>
             </div>
@@ -396,7 +405,7 @@ export default function Home() {
         )}
 
         {/* Step 2: Language Selection */}
-        {currentStep === 'language' && videoInfo && (
+        {currentStep === "language" && videoInfo && (
           <div className="space-y-6">
             {/* Video Info Card */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -422,7 +431,8 @@ export default function Home() {
                     {videoInfo.duration > 0 && (
                       <span className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {Math.floor(videoInfo.duration / 60)}:{(videoInfo.duration % 60).toString().padStart(2, '0')}
+                        {Math.floor(videoInfo.duration / 60)}:
+                        {(videoInfo.duration % 60).toString().padStart(2, "0")}
                       </span>
                     )}
                   </div>
@@ -433,7 +443,7 @@ export default function Home() {
             {/* Language Selector */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                {t('language.select')}
+                {t("language.select")}
               </h3>
               <LanguageSelector
                 languages={availableLanguages}
@@ -448,13 +458,13 @@ export default function Home() {
               onClick={handleReset}
               className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
-              {t('language.startOver')}
+              {t("language.startOver")}
             </button>
           </div>
         )}
 
         {/* Step 3: Markdown Preview */}
-        {currentStep === 'preview' && (
+        {currentStep === "preview" && (
           <div className="space-y-6">
             {/* Actions Bar */}
             <div className="flex items-center justify-between">
@@ -471,7 +481,7 @@ export default function Home() {
                     {videoInfo?.title}
                   </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {subtitleEntries.length} {t('preview.entries')}
+                    {subtitleEntries.length} {t("preview.entries")}
                   </p>
                 </div>
               </div>
@@ -480,7 +490,7 @@ export default function Home() {
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 <RefreshCw className="h-4 w-4" />
-                {t('preview.newVideo')}
+                {t("preview.newVideo")}
               </button>
             </div>
 
@@ -505,12 +515,12 @@ export default function Home() {
                           videoUrl,
                         });
                         // Update markdown content
-                        const lines = markdown.split('\n');
-                        const headerEnd = lines.findIndex(l => l.startsWith('## Transcript'));
+                        const lines = markdown.split("\n");
+                        const headerEnd = lines.findIndex((l) => l.startsWith("## Transcript"));
                         if (headerEnd >= 0) {
-                          const header = lines.slice(0, headerEnd + 2).join('\n');
-                          const footer = '\n\n---\n\n*Generated by YouTube Subtitle to Markdown*\n';
-                          setMarkdown(header + '\n\n' + transcript + footer);
+                          const header = lines.slice(0, headerEnd + 2).join("\n");
+                          const footer = "\n\n---\n\n*Generated by YouTube Subtitle to Markdown*\n";
+                          setMarkdown(header + "\n\n" + transcript + footer);
                         }
                       }
                     }}
@@ -535,12 +545,12 @@ export default function Home() {
                           videoUrl,
                         });
                         // Update markdown content
-                        const lines = markdown.split('\n');
-                        const headerEnd = lines.findIndex(l => l.startsWith('## Transcript'));
+                        const lines = markdown.split("\n");
+                        const headerEnd = lines.findIndex((l) => l.startsWith("## Transcript"));
                         if (headerEnd >= 0) {
-                          const header = lines.slice(0, headerEnd + 2).join('\n');
-                          const footer = '\n\n---\n\n*Generated by YouTube Subtitle to Markdown*\n';
-                          setMarkdown(header + '\n\n' + transcript + footer);
+                          const header = lines.slice(0, headerEnd + 2).join("\n");
+                          const footer = "\n\n---\n\n*Generated by YouTube Subtitle to Markdown*\n";
+                          setMarkdown(header + "\n\n" + transcript + footer);
                         }
                       }
                     }}
@@ -563,14 +573,16 @@ export default function Home() {
         )}
 
         {/* Loading State */}
-        {loading && currentStep !== 'input' && (
+        {loading && currentStep !== "input" && (
           <div className="flex flex-col items-center justify-center py-12">
             <div className="relative">
               <div className="w-16 h-16 border-4 border-gray-200 dark:border-gray-700 rounded-full" />
               <div className="absolute top-0 left-0 w-16 h-16 border-4 border-blue-600 rounded-full border-t-transparent animate-spin" />
             </div>
             <p className="mt-4 text-gray-600 dark:text-gray-400">
-              {currentStep === 'language' ? t('preview.fetchingLanguages') : t('preview.converting')}
+              {currentStep === "language"
+                ? t("preview.fetchingLanguages")
+                : t("preview.converting")}
             </p>
           </div>
         )}
@@ -579,12 +591,9 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-gray-200 dark:border-gray-800 mt-16">
         <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-            {t('footer.text')}
-          </p>
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400">{t("footer.text")}</p>
         </div>
       </footer>
     </div>
   );
 }
-

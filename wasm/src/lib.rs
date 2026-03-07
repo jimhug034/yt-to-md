@@ -1,22 +1,14 @@
-use wasm_bindgen::prelude::*;
 use serde_json::{json, Value};
+use wasm_bindgen::prelude::*;
 
 mod parser;
 mod processor;
 
 use parser::{
-    ttml as ttml_parser,
-    vtt as vtt_parser,
-    srt as srt_parser,
-    markdown as markdown_parser,
-    Caption,
+    markdown as markdown_parser, srt as srt_parser, ttml as ttml_parser, vtt as vtt_parser, Caption,
 };
 
-use processor::{
-    ProcessorOptions,
-    process_subtitles as process_subtitles_internal,
-    get_stats,
-};
+use processor::{get_stats, process_subtitles as process_subtitles_internal, ProcessorOptions};
 
 /// Parse YouTube TTML format and return JSON
 /// Each caption has start (seconds), end (seconds), and text fields
@@ -25,9 +17,7 @@ pub fn parse_ttml(input: &str) -> String {
     let result = ttml_parser::parse_ttml(input);
 
     match result {
-        Ok(captions) => {
-            serde_json::to_string(&captions).unwrap_or_else(|_| json!([]).to_string())
-        }
+        Ok(captions) => serde_json::to_string(&captions).unwrap_or_else(|_| json!([]).to_string()),
         Err(_) => {
             // Return empty array on error
             json!([]).to_string()
@@ -42,9 +32,7 @@ pub fn parse_vtt(input: &str) -> String {
     let result = vtt_parser::parse_vtt(input);
 
     match result {
-        Ok(captions) => {
-            serde_json::to_string(&captions).unwrap_or_else(|_| json!([]).to_string())
-        }
+        Ok(captions) => serde_json::to_string(&captions).unwrap_or_else(|_| json!([]).to_string()),
         Err(_) => {
             // Return empty array on error
             json!([]).to_string()
@@ -59,9 +47,7 @@ pub fn parse_srt(input: &str) -> String {
     let result = srt_parser::parse_srt(input);
 
     match result {
-        Ok(captions) => {
-            serde_json::to_string(&captions).unwrap_or_else(|_| json!([]).to_string())
-        }
+        Ok(captions) => serde_json::to_string(&captions).unwrap_or_else(|_| json!([]).to_string()),
         Err(_) => {
             // Return empty array on error
             json!([]).to_string()
@@ -90,7 +76,10 @@ pub fn to_markdown(captions_json: &str, options_json: &str) -> String {
         Ok(v) => v,
         Err(_) => {
             // Use default options if JSON is invalid
-            return markdown_parser::to_markdown(&captions, &markdown_parser::MarkdownOptions::default());
+            return markdown_parser::to_markdown(
+                &captions,
+                &markdown_parser::MarkdownOptions::default(),
+            );
         }
     };
 
@@ -133,10 +122,17 @@ pub fn process_subtitles(captions_json: &str, options_json: &str) -> String {
     };
 
     let options = ProcessorOptions {
-        include_timestamps: options_value["include_timestamps"].as_bool().unwrap_or_default(),
+        include_timestamps: options_value["include_timestamps"]
+            .as_bool()
+            .unwrap_or_default(),
         compact_mode: options_value["compact_mode"].as_bool().unwrap_or(true),
-        sentences_per_paragraph: options_value["sentences_per_paragraph"].as_u64().unwrap_or(4) as usize,
-        video_url: options_value["video_url"].as_str().unwrap_or("").to_string(),
+        sentences_per_paragraph: options_value["sentences_per_paragraph"]
+            .as_u64()
+            .unwrap_or(4) as usize,
+        video_url: options_value["video_url"]
+            .as_str()
+            .unwrap_or("")
+            .to_string(),
     };
 
     process_subtitles_internal(&captions, &options)
@@ -155,7 +151,6 @@ pub fn get_processing_stats(captions_json: &str, processed_output: &str) -> Stri
     let stats = get_stats(&captions, processed_output);
     serde_json::to_string(&stats).unwrap_or_default()
 }
-
 
 #[cfg(test)]
 mod tests {

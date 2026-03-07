@@ -4,38 +4,38 @@
  * Automated test script for YouTube Subtitle to Markdown
  */
 
-const https = require('https');
+const https = require("https");
 
 // Test video: Andrej Karpathy's "Deep Dive into LLMs like ChatGPT"
-const TEST_VIDEO_ID = '7xTGNNLPyMI';
+const TEST_VIDEO_ID = "7xTGNNLPyMI";
 const TEST_VIDEO_URL = `https://www.youtube.com/watch?v=${TEST_VIDEO_ID}`;
 
 const colors = {
-  reset: '\x1b[0m',
-  green: '\x1b[32m',
-  red: '\x1b[31m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
+  reset: "\x1b[0m",
+  green: "\x1b[32m",
+  red: "\x1b[31m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
 };
 
-function log(message, color = 'reset') {
+function log(message, color = "reset") {
   console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
 function success(message) {
-  log(`✓ ${message}`, 'green');
+  log(`✓ ${message}`, "green");
 }
 
 function error(message) {
-  log(`✗ ${message}`, 'red');
+  log(`✗ ${message}`, "red");
 }
 
 function info(message) {
-  log(`→ ${message}`, 'blue');
+  log(`→ ${message}`, "blue");
 }
 
 function warn(message) {
-  log(`⚠ ${message}`, 'yellow');
+  log(`⚠ ${message}`, "yellow");
 }
 
 function fetch(url, options = {}) {
@@ -44,15 +44,16 @@ function fetch(url, options = {}) {
     const opts = {
       ...options,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         ...options.headers,
       },
     };
 
     const req = https.request(urlObj, opts, (res) => {
-      let data = '';
-      res.on('data', (chunk) => data += chunk);
-      res.on('end', () => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
         resolve({
           ok: res.statusCode >= 200 && res.statusCode < 300,
           status: res.statusCode,
@@ -62,10 +63,10 @@ function fetch(url, options = {}) {
       });
     });
 
-    req.on('error', reject);
+    req.on("error", reject);
     req.setTimeout(15000, () => {
       req.destroy();
-      reject(new Error('Request timeout'));
+      reject(new Error("Request timeout"));
     });
     req.end();
   });
@@ -73,13 +74,13 @@ function fetch(url, options = {}) {
 
 // Test 1: Video ID extraction
 function testVideoIdExtraction() {
-  log('\n=== Test 1: Video ID Extraction ===', 'blue');
+  log("\n=== Test 1: Video ID Extraction ===", "blue");
 
   const patterns = [
-    'https://www.youtube.com/watch?v=7xTGNNLPyMI',
-    'https://youtu.be/7xTGNNLPyMI',
-    'https://www.youtube.com/embed/7xTGNNLPyMI',
-    '7xTGNNLPyMI',
+    "https://www.youtube.com/watch?v=7xTGNNLPyMI",
+    "https://youtu.be/7xTGNNLPyMI",
+    "https://www.youtube.com/embed/7xTGNNLPyMI",
+    "7xTGNNLPyMI",
   ];
 
   const testPatterns = [
@@ -112,7 +113,7 @@ function testVideoIdExtraction() {
 
 // Test 2: Video info from noembed.com
 async function testVideoInfo() {
-  log('\n=== Test 2: Video Info (noembed.com) ===', 'blue');
+  log("\n=== Test 2: Video Info (noembed.com) ===", "blue");
 
   try {
     const url = `https://noembed.com/embed?url=${encodeURIComponent(TEST_VIDEO_URL)}`;
@@ -133,9 +134,9 @@ async function testVideoInfo() {
     }
 
     success(`Got video info`);
-    log(`  Title: ${data.title}`, 'reset');
-    log(`  Author: ${data.author_name}`, 'reset');
-    log(`  Thumbnail: ${data.thumbnail_url ? '✓' : '✗'}`, 'reset');
+    log(`  Title: ${data.title}`, "reset");
+    log(`  Author: ${data.author_name}`, "reset");
+    log(`  Thumbnail: ${data.thumbnail_url ? "✓" : "✗"}`, "reset");
 
     return true;
   } catch (e) {
@@ -146,7 +147,7 @@ async function testVideoInfo() {
 
 // Test 3: YouTube embed page scraping
 async function testEmbedScraping() {
-  log('\n=== Test 3: YouTube Embed Scraping ===', 'blue');
+  log("\n=== Test 3: YouTube Embed Scraping ===", "blue");
 
   try {
     const embedUrl = `https://www.youtube.com/embed/${TEST_VIDEO_ID}`;
@@ -165,7 +166,7 @@ async function testEmbedScraping() {
     const match = html.match(/ytInitialPlayerResponse\s*=\s*({.+?})\s*;var/);
 
     if (!match) {
-      error('Could not find ytInitialPlayerResponse in embed page');
+      error("Could not find ytInitialPlayerResponse in embed page");
       return false;
     }
 
@@ -174,17 +175,17 @@ async function testEmbedScraping() {
       const captions = playerData.captions?.playerCaptionsTracklistRenderer?.captionTracks;
 
       if (!captions || !Array.isArray(captions)) {
-        warn('No caption tracks found in player response');
+        warn("No caption tracks found in player response");
         return false;
       }
 
       success(`Found ${captions.length} caption tracks:`);
 
       for (const track of captions.slice(0, 5)) {
-        const langCode = track.languageCode || 'unknown';
-        const langName = track.name?.simpleText || track.languageCode || 'Unknown';
-        const isAuto = track.kind === 'asr';
-        log(`  - ${langName} (${langCode})${isAuto ? ' [Auto]' : ''}`, 'reset');
+        const langCode = track.languageCode || "unknown";
+        const langName = track.name?.simpleText || track.languageCode || "Unknown";
+        const isAuto = track.kind === "asr";
+        log(`  - ${langName} (${langCode})${isAuto ? " [Auto]" : ""}`, "reset");
       }
 
       return true;
@@ -200,7 +201,7 @@ async function testEmbedScraping() {
 
 // Test 4: Local API endpoint
 async function testLocalAPI() {
-  log('\n=== Test 4: Local API Endpoint ===', 'blue');
+  log("\n=== Test 4: Local API Endpoint ===", "blue");
 
   const apiUrl = `http://localhost:3000/api/subtitles?videoId=${TEST_VIDEO_ID}&type=list`;
   info(`Testing: ${apiUrl}`);
@@ -216,12 +217,12 @@ async function testLocalAPI() {
     const text = await response.text();
 
     if (text.includes('"error"')) {
-      warn('API returned error (may be expected due to network restrictions)');
-      log(`  Response: ${text.substring(0, 200)}...`, 'reset');
+      warn("API returned error (may be expected due to network restrictions)");
+      log(`  Response: ${text.substring(0, 200)}...`, "reset");
       return false;
     }
 
-    if (text.includes('<transcript>')) {
+    if (text.includes("<transcript>")) {
       const trackMatches = text.match(/<track[^>]*>/g);
       if (trackMatches) {
         success(`API returned ${trackMatches.length} tracks`);
@@ -229,7 +230,7 @@ async function testLocalAPI() {
       }
     }
 
-    warn('API response unclear');
+    warn("API response unclear");
     return false;
   } catch (e) {
     error(`Failed: ${e.message}`);
@@ -239,9 +240,9 @@ async function testLocalAPI() {
 
 // Test 5: Local app accessibility
 async function testLocalApp() {
-  log('\n=== Test 5: Local App Accessibility ===', 'blue');
+  log("\n=== Test 5: Local App Accessibility ===", "blue");
 
-  const appUrl = 'http://localhost:3000';
+  const appUrl = "http://localhost:3000";
   info(`Testing: ${appUrl}`);
 
   try {
@@ -254,12 +255,12 @@ async function testLocalApp() {
 
     const html = await response.text();
 
-    if (html.includes('YouTube Subtitle to Markdown')) {
-      success('App is running and accessible');
+    if (html.includes("YouTube Subtitle to Markdown")) {
+      success("App is running and accessible");
       return true;
     }
 
-    error('App response unexpected');
+    error("App response unexpected");
     return false;
   } catch (e) {
     error(`Failed: ${e.message}`);
@@ -269,9 +270,9 @@ async function testLocalApp() {
 
 // Run all tests
 async function runTests() {
-  log('\n╔════════════════════════════════════════════════╗', 'blue');
-  log('║  YouTube Subtitle to Markdown - Auto Test     ║', 'blue');
-  log('╚════════════════════════════════════════════════╝', 'blue');
+  log("\n╔════════════════════════════════════════════════╗", "blue");
+  log("║  YouTube Subtitle to Markdown - Auto Test     ║", "blue");
+  log("╚════════════════════════════════════════════════╝", "blue");
 
   const results = {
     videoIdExtraction: testVideoIdExtraction(),
@@ -282,7 +283,7 @@ async function runTests() {
   };
 
   // Summary
-  log('\n=== Summary ===', 'blue');
+  log("\n=== Summary ===", "blue");
 
   let passed = 0;
   let total = 0;
@@ -297,22 +298,22 @@ async function runTests() {
     }
   }
 
-  log('\n' + '─'.repeat(50), 'reset');
-  log(`Result: ${passed}/${total} tests passed`, passed === total ? 'green' : 'yellow');
-  log('─'.repeat(50), 'reset');
+  log("\n" + "─".repeat(50), "reset");
+  log(`Result: ${passed}/${total} tests passed`, passed === total ? "green" : "yellow");
+  log("─".repeat(50), "reset");
 
   // Browser test reminder
-  log('\n=== Browser Test Required ===', 'yellow');
-  log('Some features require browser testing:', 'reset');
-  log('  Open http://localhost:3000 in your browser', 'reset');
-  log(`  Paste: ${TEST_VIDEO_URL}`, 'reset');
-  log('  Verify: Video info, language list, subtitle loading', 'reset');
-  log('', 'reset');
+  log("\n=== Browser Test Required ===", "yellow");
+  log("Some features require browser testing:", "reset");
+  log("  Open http://localhost:3000 in your browser", "reset");
+  log(`  Paste: ${TEST_VIDEO_URL}`, "reset");
+  log("  Verify: Video info, language list, subtitle loading", "reset");
+  log("", "reset");
 
   process.exit(passed === total ? 0 : 1);
 }
 
-runTests().catch(err => {
+runTests().catch((err) => {
   error(`Test runner error: ${err.message}`);
   process.exit(1);
 });

@@ -69,7 +69,13 @@ pub fn parse_vtt(input: &str) -> Result<Vec<Caption>, VttParseError> {
                     break;
                 }
                 // Skip VTT cue settings (like align, position, etc.)
-                if !text_line.contains(':') || text_line.chars().next().map(|c| c.is_alphabetic()).unwrap_or(false) {
+                if !text_line.contains(':')
+                    || text_line
+                        .chars()
+                        .next()
+                        .map(|c| c.is_alphabetic())
+                        .unwrap_or(false)
+                {
                     text_lines.push(text_line);
                 }
                 i += 1;
