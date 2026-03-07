@@ -10,10 +10,10 @@ import { MarkdownPreview } from '../components/MarkdownPreview';
 import {
   getVideoInfo,
   getAvailableSubtitles,
-  formatTimestamp,
   type YouTubeVideoInfo,
   type SubtitleEntry,
 } from '../lib/youtube';
+import { processSubtitles, getSubtitleStats } from '../lib/subtitle-processor';
 import { loadWASM, isWASMSupported } from '../lib/wasm';
 
 type AppStep = 'input' | 'language' | 'preview';
@@ -39,6 +39,9 @@ export default function Home() {
   const [subtitleEntries, setSubtitleEntries] = useState<SubtitleEntry[]>([]);
   const [markdown, setMarkdown] = useState('');
   const [loading, setLoading] = useState(false);
+  // Format options
+  const [compactMode, setCompactMode] = useState(true);
+  const [includeTimestamps, setIncludeTimestamps] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wasmLoaded, setWasmLoaded] = useState(false);
   const [currentStep, setCurrentStep] = useState<AppStep>('input');
@@ -153,8 +156,12 @@ export default function Home() {
 
   // Handle language selection and subtitle fetching
   const handleLanguageSelect = useCallback(async (langCode: string) => {
-    if (!videoId) return;
+    if (!videoId) {
+      console.error('[handleLanguageSelect] No videoId');
+      return;
+    }
 
+    console.log('[handleLanguageSelect] Starting:', { videoId, langCode });
     setLoading(true);
     setError(null);
     setSelectedLanguage(langCode);
@@ -164,33 +171,46 @@ export default function Home() {
       let subtitleContent: string | null = null;
 
       try {
+        console.log('[handleLanguageSelect] Trying embed method...');
         const { getSubtitleUrl } = await import('../lib/youtube');
         const subtitleUrl = await getSubtitleUrl(videoId, langCode);
 
         if (subtitleUrl) {
+          console.log('[handleLanguageSelect] Subtitle URL obtained:', subtitleUrl);
           const response = await fetch(subtitleUrl);
           if (response.ok) {
             subtitleContent = await response.text();
+            console.log('[handleLanguageSelect] Embed method success, content length:', subtitleContent.length);
+          } else {
+            console.warn('[handleLanguageSelect] Embed request failed:', response.status);
           }
         }
       } catch (embedError) {
-        console.warn('Embed method failed:', embedError);
+        console.warn('[handleLanguageSelect] Embed method failed:', embedError);
       }
 
       // Method 2: Try API route as fallback
       if (!subtitleContent) {
+        console.log('[handleLanguageSelect] Trying API route...');
         const apiUrl = `/api/subtitles?videoId=${encodeURIComponent(videoId)}&lang=${encodeURIComponent(langCode)}`;
+        console.log('[handleLanguageSelect] API URL:', apiUrl);
         const response = await fetch(apiUrl);
 
+        console.log('[handleLanguageSelect] API response status:', response.status);
         if (response.ok) {
           const text = await response.text();
+          console.log('[handleLanguageSelect] API response length:', text.length);
           if (!text.includes('"error"') && !text.includes('<!DOCTYPE')) {
             subtitleContent = text;
+            console.log('[handleLanguageSelect] API method success');
+          } else {
+            console.warn('[handleLanguageSelect] API returned error or HTML:', text.substring(0, 200));
           }
         }
       }
 
       if (!subtitleContent) {
+        console.error('[handleLanguageSelect] All methods failed');
         throw new Error(t('errors.fetchSubtitles'));
       }
 
@@ -198,7 +218,7 @@ export default function Home() {
       const entries = parseYouTubeXML(subtitleContent);
       setSubtitleEntries(entries);
 
-      // Generate markdown
+      // Generate markdown using the processor (async for WASM)
       const languageName = availableLanguages.find((l) => l.code === langCode)?.name || langCode;
 
       let generatedMarkdown = `# [${videoInfo?.title || 'Video'}](${videoUrl})\n\n`;
@@ -210,28 +230,39 @@ export default function Home() {
         const seconds = Math.floor(videoInfo.duration % 60);
         generatedMarkdown += `Duration: ${minutes}:${seconds.toString().padStart(2, '0')} | `;
       }
-      generatedMarkdown += `Language: ${languageName}\n\n`;
+      generatedMarkdown += `Language: ${languageName}`;
+
+      // Add stats
+      const stats = await getSubtitleStats(entries);
+      generatedMarkdown += ` | ${entries.length} segments`;
+      if (stats.wordCount > 0) {
+        generatedMarkdown += ` | ~${stats.wordCount} words`;
+      }
+      generatedMarkdown += '\n\n';
 
       generatedMarkdown += '## Transcript\n\n';
 
-      // Add subtitle entries
-      for (const entry of entries) {
-        const timestamp = formatTimestamp(entry.startTime);
-        const videoUrlWithTime = `${videoUrl}&t=${Math.floor(entry.startTime / 1000)}`;
-        generatedMarkdown += `[${timestamp}](${videoUrlWithTime}) ${entry.text}\n\n`;
-      }
+      // Process subtitles with current format options (using Rust WASM)
+      const transcript = await processSubtitles(entries, {
+        compactMode,
+        includeTimestamps,
+        videoUrl,
+      });
+      generatedMarkdown += transcript;
 
-      generatedMarkdown += '---\n\n';
+      generatedMarkdown += '\n\n---\n\n';
       generatedMarkdown += '*Generated by YouTube Subtitle to Markdown*\n';
 
       setMarkdown(generatedMarkdown);
       setCurrentStep('preview');
       setLoading(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('errors.fetchSubtitlesGeneric'));
+      console.error('Language selection error:', err);
+      const errorMessage = err instanceof Error ? err.message : t('errors.fetchSubtitlesGeneric');
+      setError(errorMessage);
       setLoading(false);
     }
-  }, [videoId, videoInfo, videoUrl, availableLanguages]);
+  }, [videoId, videoInfo, videoUrl, availableLanguages, compactMode, includeTimestamps, t]);
 
   // Reset to start
   const handleReset = () => {
@@ -451,6 +482,75 @@ export default function Home() {
                 <RefreshCw className="h-4 w-4" />
                 {t('preview.newVideo')}
               </button>
+            </div>
+
+            {/* Format Options */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Format:
+                </span>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={compactMode}
+                    onChange={async (e) => {
+                      const newCompactMode = e.target.checked;
+                      setCompactMode(newCompactMode);
+                      // Regenerate markdown with new option
+                      if (subtitleEntries.length > 0) {
+                        const transcript = await processSubtitles(subtitleEntries, {
+                          compactMode: newCompactMode,
+                          includeTimestamps,
+                          videoUrl,
+                        });
+                        // Update markdown content
+                        const lines = markdown.split('\n');
+                        const headerEnd = lines.findIndex(l => l.startsWith('## Transcript'));
+                        if (headerEnd >= 0) {
+                          const header = lines.slice(0, headerEnd + 2).join('\n');
+                          const footer = '\n\n---\n\n*Generated by YouTube Subtitle to Markdown*\n';
+                          setMarkdown(header + '\n\n' + transcript + footer);
+                        }
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Compact mode (merge segments)
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeTimestamps}
+                    onChange={async (e) => {
+                      const newTimestamps = e.target.checked;
+                      setIncludeTimestamps(newTimestamps);
+                      // Regenerate markdown with new option
+                      if (subtitleEntries.length > 0) {
+                        const transcript = await processSubtitles(subtitleEntries, {
+                          compactMode,
+                          includeTimestamps: newTimestamps,
+                          videoUrl,
+                        });
+                        // Update markdown content
+                        const lines = markdown.split('\n');
+                        const headerEnd = lines.findIndex(l => l.startsWith('## Transcript'));
+                        if (headerEnd >= 0) {
+                          const header = lines.slice(0, headerEnd + 2).join('\n');
+                          const footer = '\n\n---\n\n*Generated by YouTube Subtitle to Markdown*\n';
+                          setMarkdown(header + '\n\n' + transcript + footer);
+                        }
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Include timestamps
+                  </span>
+                </label>
+              </div>
             </div>
 
             {/* Markdown Preview */}

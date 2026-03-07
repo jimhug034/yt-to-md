@@ -44,3 +44,6 @@ next-env.d.ts
 wasm/pkg/
 wasm/target/
 public/yt_subtitle_wasm_bg.wasm
+
+test-results
+playwright-report

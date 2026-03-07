@@ -2,6 +2,7 @@ use wasm_bindgen::prelude::*;
 use serde_json::{json, Value};
 
 mod parser;
+mod processor;
 
 use parser::{
     ttml as ttml_parser,
@@ -9,6 +10,12 @@ use parser::{
     srt as srt_parser,
     markdown as markdown_parser,
     Caption,
+};
+
+use processor::{
+    ProcessorOptions,
+    process_subtitles as process_subtitles_internal,
+    get_stats,
 };
 
 /// Parse YouTube TTML format and return JSON
@@ -95,6 +102,60 @@ pub fn to_markdown(captions_json: &str, options_json: &str) -> String {
 
     markdown_parser::to_markdown(&captions, &markdown_options)
 }
+
+/// High-performance subtitle processing in Rust
+/// Input: captions JSON array + options JSON
+/// Output: processed Markdown text
+///
+/// Options JSON format:
+/// {
+///   "include_timestamps": bool,
+///   "compact_mode": bool,
+///   "sentences_per_paragraph": number,
+///   "video_url": string
+/// }
+#[wasm_bindgen]
+pub fn process_subtitles(captions_json: &str, options_json: &str) -> String {
+    // Parse captions
+    let captions: Vec<Caption> = match serde_json::from_str(captions_json) {
+        Ok(c) => c,
+        Err(_) => return String::new(),
+    };
+
+    // Parse options
+    let options_value: Value = match serde_json::from_str(options_json) {
+        Ok(v) => v,
+        Err(_) => {
+            // Use default options
+            let default_options = ProcessorOptions::default();
+            return process_subtitles_internal(&captions, &default_options);
+        }
+    };
+
+    let options = ProcessorOptions {
+        include_timestamps: options_value["include_timestamps"].as_bool().unwrap_or_default(),
+        compact_mode: options_value["compact_mode"].as_bool().unwrap_or(true),
+        sentences_per_paragraph: options_value["sentences_per_paragraph"].as_u64().unwrap_or(4) as usize,
+        video_url: options_value["video_url"].as_str().unwrap_or("").to_string(),
+    };
+
+    process_subtitles_internal(&captions, &options)
+}
+
+/// Get processing statistics
+/// Input: captions JSON array + processed output
+/// Output: stats JSON string
+#[wasm_bindgen]
+pub fn get_processing_stats(captions_json: &str, processed_output: &str) -> String {
+    let captions: Vec<Caption> = match serde_json::from_str(captions_json) {
+        Ok(c) => c,
+        Err(_) => return json!({}).to_string(),
+    };
+
+    let stats = get_stats(&captions, processed_output);
+    serde_json::to_string(&stats).unwrap_or_default()
+}
+
 
 #[cfg(test)]
 mod tests {
