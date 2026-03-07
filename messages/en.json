@@ -55,8 +55,8 @@
     "noSubtitles": "This video doesn't have any subtitles available. Please try a different video.",
     "fetchLanguages": "Failed to fetch available languages",
     "fetchLanguagesWithSuggestion": "Please try again or check if the video has subtitles.",
-    "fetchSubtitles": "Could not fetch subtitles. The video may not have subtitles for this language.",
-    "fetchSubtitlesGeneric": "Failed to fetch subtitles"
+    "fetchSubtitles": "Could not fetch subtitles. This may be due to network restrictions or the video may not have subtitles for this language. Please try again or use a VPN if you're in a restricted region.",
+    "fetchSubtitlesGeneric": "Failed to fetch subtitles. Please check your network connection and try again."
   },
   "footer": {
     "text": "YouTube Subtitle to Markdown Converter • Built with Next.js"

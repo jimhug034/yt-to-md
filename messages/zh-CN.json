@@ -55,8 +55,8 @@
     "noSubtitles": "该视频没有可用的字幕，请尝试其他视频。",
     "fetchLanguages": "获取可用语言失败",
     "fetchLanguagesWithSuggestion": "请重试或检查视频是否有字幕。",
-    "fetchSubtitles": "无法获取字幕，该视频可能没有此语言的字幕。",
-    "fetchSubtitlesGeneric": "获取字幕失败"
+    "fetchSubtitles": "无法获取字幕。这可能是由于网络限制或该视频没有此语言的字幕。请重试，如果您在受限地区，可以尝试使用 VPN。",
+    "fetchSubtitlesGeneric": "获取字幕失败，请检查网络连接后重试。"
   },
   "footer": {
     "text": "YouTube 字幕转 Markdown 工具 • 由 Next.js 构建"

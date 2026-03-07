@@ -13,7 +13,13 @@
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "check": "oxlint && oxfmt --check .",
-    "fix": "oxlint --fix && oxfmt ."
+    "fix": "oxlint --fix && oxfmt .",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "test:install": "playwright install"
   },
   "engines": {
     "node": "24"
@@ -30,6 +36,7 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
