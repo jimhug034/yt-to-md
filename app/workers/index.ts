@@ -30,14 +30,20 @@ import type {
 } from './frame-extraction.worker';
 
 import type {
-  WhisperResult,
-  WhisperSegment,
-} from '../lib/models/whisper';
+  WhisperWorkerMessage,
+  WhisperWorkerResponse,
+  WhisperWorkerOptions,
+} from './whisper.worker';
 
 import type {
   TranscriptSegment,
   KeyFrame,
 } from '../lib/wasm';
+
+import type {
+  WhisperResult,
+  WhisperSegment,
+} from '../lib/models/whisper';
 
 // ============================================
 // 通用 Worker 包装器类型
@@ -628,12 +634,171 @@ class FrameExtractionWorkerManager implements WorkerWrapper<FrameExtractionWorke
 }
 
 // ============================================
+// Whisper Worker 管理器
+// ============================================
+
+class WhisperWorkerManager implements WorkerWrapper<WhisperWorkerMessage, WhisperWorkerResponse> {
+  worker: Worker | null = null;
+  isReady = false;
+  messageId = 0;
+  pendingMessages = new Map<number, {
+    resolve: (value: any) => void;
+    reject: (error: Error) => void;
+    onProgress?: (progress: number, data?: any) => void;
+  }>();
+
+  create(): void {
+    if (this.worker) return;
+
+    this.worker = new Worker(
+      new URL('./whisper.worker.ts', import.meta.url),
+      { type: 'module' }
+    );
+
+    this.worker.onmessage = (e: MessageEvent<WhisperWorkerResponse>) => {
+      this.handleMessage(e.data);
+    };
+
+    this.worker.onerror = (error) => {
+      console.error('Whisper worker error:', error);
+    };
+
+    this.isReady = true;
+  }
+
+  terminate(): void {
+    if (this.worker) {
+      this.worker.terminate();
+      this.worker = null;
+    }
+    this.isReady = false;
+    this.pendingMessages.clear();
+  }
+
+  async send<T = WhisperWorkerResponse>(
+    message: WhisperWorkerMessage,
+    options?: WorkerSendOptions
+  ): Promise<T> {
+    if (!this.worker) {
+      this.create();
+    }
+
+    const id = ++this.messageId;
+
+    return new Promise<T>((resolve, reject) => {
+      if (options?.timeout) {
+        setTimeout(() => {
+          this.pendingMessages.delete(id);
+          reject(new Error(`Worker message timeout: ${message.type}`));
+        }, options.timeout);
+      }
+
+      this.pendingMessages.set(id, {
+        resolve,
+        reject,
+        onProgress: options?.onProgress,
+      });
+
+      if (options?.transferables) {
+        this.worker!.postMessage({ ...message, _id: id }, options.transferables);
+      } else {
+        this.worker!.postMessage({ ...message, _id: id });
+      }
+    });
+  }
+
+  private handleMessage(data: WhisperWorkerResponse): void {
+    // 查找待处理的消息（这里简化处理，实际可能需要消息ID匹配）
+    const entry = Array.from(this.pendingMessages.values())[0];
+
+    if (!entry) return;
+
+    switch (data.type) {
+      case 'progress':
+        entry.onProgress?.(data.progress || 0, { stage: data.stage });
+        break;
+
+      case 'complete':
+        this.pendingMessages.clear();
+        entry.resolve(data);
+        break;
+
+      case 'status':
+        // 状态更新，不解析 promise
+        break;
+
+      case 'aborted':
+        this.pendingMessages.clear();
+        entry.reject(new Error('Worker operation aborted'));
+        break;
+
+      case 'error':
+        this.pendingMessages.clear();
+        entry.reject(new Error(data.error || 'Unknown worker error'));
+        break;
+    }
+  }
+
+  // 便捷方法
+  async loadModel(options?: WhisperWorkerOptions): Promise<void> {
+    await this.send({ type: 'loadModel', options } as WhisperWorkerMessage);
+  }
+
+  async transcribe(
+    audioData: Float32Array | Blob,
+    options?: WhisperWorkerOptions & { jobId?: string },
+    onProgress?: (progress: number) => void
+  ): Promise<{ result: WhisperResult; segments: WhisperSegment[] }> {
+    let message: any = {
+      type: 'transcribe',
+      options,
+    };
+
+    if (audioData instanceof Float32Array) {
+      message.audioData = Array.from(audioData);
+    } else if (audioData instanceof Blob) {
+      message.audioBlob = audioData;
+    }
+
+    const response = await this.send(message, { onProgress }) as WhisperWorkerResponse & {
+      result?: WhisperResult;
+      segments?: WhisperSegment[];
+    };
+
+    if (response.type === 'error') {
+      throw new Error(response.error);
+    }
+
+    return {
+      result: response.result!,
+      segments: response.segments || [],
+    };
+  }
+
+  async abort(): Promise<void> {
+    await this.send({ type: 'abort' } as WhisperWorkerMessage);
+  }
+
+  async getStatus(): Promise<{ isModelLoaded: boolean; isProcessing: boolean }> {
+    const response = await this.send({ type: 'getStatus' } as WhisperWorkerMessage) as WhisperWorkerResponse & {
+      isModelLoaded?: boolean;
+      isProcessing?: boolean;
+    };
+    return {
+      isModelLoaded: response.isModelLoaded || false,
+      isProcessing: response.isProcessing || false,
+    };
+  }
+}
+
+// ============================================
 // 导出的 Worker 管理器单例
 // ============================================
 
 export const transcriptionWorker = new TranscriptionWorkerManager();
 export const ocrWorker = new OcrWorkerManager();
 export const frameExtractionWorker = new FrameExtractionWorkerManager();
+export const whisperWorker = new WhisperWorkerManager();
 
 /**
  * 清理所有 Workers
@@ -642,6 +807,7 @@ export function terminateAllWorkers(): void {
   transcriptionWorker.terminate();
   ocrWorker.terminate();
   frameExtractionWorker.terminate();
+  whisperWorker.terminate();
 }
 
 // ============================================
@@ -659,6 +825,13 @@ export type {
   OcrWorkerResponse,
   OcrWorkerOptions,
   OcrFrameResult,
+
+  // Whisper Worker
+  WhisperWorkerMessage,
+  WhisperWorkerResponse,
+  WhisperWorkerOptions,
+  WhisperResult,
+  WhisperSegment,
 
   // Frame Extraction Worker (重命名以避免与 lib/video/frame-extractor.ts 冲突)
   FrameExtractionWorkerMessage,
