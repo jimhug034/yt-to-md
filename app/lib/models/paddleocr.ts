@@ -1,24 +1,23 @@
 /**
- * PaddleOCR Integration
- * 使用 PaddleOCR WASM 进行文字识别
+ * Rust OCR WASM 绑定
+ *
+ * 导出 Rust OCR 模块的类型和函数
  */
 
-import { pipeline, env } from '@xenova/transformers';
+import { OcrProcessor } from '../../../wasm/pkg';
 
-// 配置 transformers.js
-env.allowLocalModels = false;
-env.useBrowserCache = true;
-
-export interface OcrOptions {
-  language?: 'ch' | 'en' | 'korean' | 'japan';
-  detector?: string;
-  recognizer?: string;
-  orientationDetector?: string;
-}
+// ============================================
+// 类型定义
+// ============================================
 
 export interface OcrBox {
   text: string;
-  box: number[][];
+  bbox: {
+    x0: number;
+    y0: number;
+    x1: number;
+    y1: number;
+  };
   score: number;
 }
 
@@ -28,155 +27,69 @@ export interface OcrResult {
   language: string;
 }
 
-export class PaddleOCRModel {
-  private ocr: any = null;
-  private isLoaded: boolean = false;
-  private isLoading: boolean = false;
-  private progressCallback: ((progress: number) => void) | null = null;
+export interface OcrOptions {
+  language?: 'ch' | 'en' | 'korean' | 'japan' | 'auto';
+  minConfidence?: number;
+  mergeDuplicates?: boolean;
+  enableTextCleaning?: boolean;
+}
 
-  async load(options: OcrOptions = {}): Promise<void> {
-    if (this.isLoaded || this.isLoading) return;
+// ============================================
+// OCR 模型类
+// ============================================
 
-    this.isLoading = true;
+class RustOcrModel {
+  private processor: OcrProcessor;
 
-    try {
-      // 使用 transformers.js 的 OCR pipeline
-      // @ts-ignore - transformers.js type issue
-      this.ocr = await pipeline(
-        // @ts-ignore
-        'image-text-to-text',
-        'Xenova/trocr-base-handwritten', // 或其他合适的模型
-        {
-          progress_callback: (progress: any) => {
-            if (this.progressCallback && progress.status === 'progress') {
-              this.progressCallback(progress.progress || 0);
-            }
-          },
-        }
-      );
-
-      this.isLoaded = true;
-    } catch (error) {
-      console.error('Failed to load OCR model:', error);
-      // OCR 加载失败不应该阻止整个流程
-      this.isLoaded = false;
-    } finally {
-      this.isLoading = false;
-    }
+  constructor(language: string = 'auto') {
+    this.processor = new OcrProcessor(language);
   }
 
-  onProgress(callback: (progress: number) => void) {
-    this.progressCallback = callback;
+  /**
+   * 解析 OCR JSON 结果
+   */
+  parseOcrResult(resultJson: string): OcrResult {
+    const parsed = this.processor.parse_ocr_result(resultJson);
+    return JSON.parse(parsed);
   }
 
-  async recognize(imageData: ImageData | HTMLImageElement | Blob): Promise<OcrResult> {
-    if (!this.isLoaded) {
-      await this.load();
-    }
-
-    if (!this.ocr) {
-      return { text: '', boxes: [], language: 'en' };
-    }
-
-    try {
-      let imageSource: string | Blob;
-
-      if (imageData instanceof ImageData) {
-        // 转换 ImageData 到 Blob
-        const canvas = document.createElement('canvas');
-        canvas.width = imageData.width;
-        canvas.height = imageData.height;
-        const ctx = canvas.getContext('2d');
-        ctx?.putImageData(imageData, 0, 0);
-        imageSource = await new Promise<Blob>((resolve) => {
-          canvas.toBlob((b) => resolve(b!), 'image/png');
-        });
-      } else if (imageData instanceof Blob) {
-        imageSource = imageData;
-      } else {
-        imageSource = imageData.src;
-      }
-
-      const output = await this.ocr(imageSource);
-
-      return {
-        text: output?.[0]?.generated_text || '',
-        boxes: [],
-        language: 'en',
-      };
-    } catch (error) {
-      console.error('OCR recognition failed:', error);
-      return { text: '', boxes: [], language: 'en' };
-    }
+  /**
+   * 清理 OCR 文本
+   */
+  cleanOcrText(text: string): string {
+    return this.processor.clean_ocr_text(text);
   }
 
-  async recognizeBatch(
-    images: (ImageData | HTMLImageElement | Blob)[]
-  ): Promise<OcrResult[]> {
-    const results: OcrResult[] = [];
-
-    for (const image of images) {
-      const result = await this.recognize(image);
-      results.push(result);
-    }
-
-    return results;
+  /**
+   * 合并多帧文本
+   */
+  mergeFrameTexts(ocrResults: string): string {
+    return this.processor.merge_frame_texts(ocrResults);
   }
 
-  release() {
-    this.ocr = null;
-    this.isLoaded = false;
+  /**
+   * 释放资源
+   */
+  terminate(): void {
+    // Rust 端不需要显式释放
   }
 }
 
-// 单例
-export let paddleOcrModel: PaddleOCRModel | null = null;
+// ============================================
+// 单例导出
+// ============================================
 
-export function getPaddleOCRModel(): PaddleOCRModel {
-  if (!paddleOcrModel) {
-    paddleOcrModel = new PaddleOCRModel();
+let ocrModel: RustOcrModel | null = null;
+
+export function getPaddleOCRModel(): RustOcrModel {
+  if (!ocrModel) {
+    ocrModel = new RustOcrModel();
   }
-  return paddleOcrModel;
+  return ocrModel;
 }
 
-export function releasePaddleOCRModel() {
-  paddleOcrModel?.release();
-  paddleOcrModel = null;
+export function releasePaddleOCRModel(): void {
+  ocrModel = null;
 }
 
-/**
- * 使用 Tesseract.js 作为备选方案
- */
-export async function recognizeWithTesseract(
-  image: ImageData | HTMLImageElement | Blob,
-  language = 'eng+chi_sim'
-): Promise<string> {
-  try {
-    // @ts-ignore - tesseract.js is optional
-    const Tesseract = await import('tesseract.js');
-
-    let imageSource: string | Blob;
-
-    if (image instanceof ImageData) {
-      const canvas = document.createElement('canvas');
-      canvas.width = image.width;
-      canvas.height = image.height;
-      const ctx = canvas.getContext('2d');
-      ctx?.putImageData(image, 0, 0);
-      imageSource = await new Promise<Blob>((resolve) => {
-        canvas.toBlob((b) => resolve(b!), 'image/png');
-      });
-    } else if (image instanceof Blob) {
-      imageSource = image;
-    } else {
-      // HTMLImageElement
-      imageSource = image.src;
-    }
-
-    const result = await Tesseract.recognize(imageSource, language);
-    return result.data.text;
-  } catch (error) {
-    console.error('Tesseract OCR failed:', error);
-    return '';
-  }
-}
+// 导出类型（已经在顶部定义，这里不需要重复导出）

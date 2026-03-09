@@ -6,7 +6,7 @@ import { ProgressStepper } from './ProgressStepper';
 import { RealtimeTranscript } from './RealtimeTranscript';
 import { FrameGallery } from './FrameGallery';
 import { OutputViewer } from './OutputViewer';
-import { useWhisperTranscription } from '@/app/hooks';
+import { useWhisperTranscription, useOcr } from '@/app/hooks';
 import { audioExtractor } from '@/app/lib/audio';
 import type { VideoJob, TranscriptSegment, KeyFrame, Chapter } from '@/app/lib/wasm';
 import { videoDecoder } from '@/app/lib/video/decoder';
@@ -35,6 +35,7 @@ interface ProcessingState {
   error: string | null;
   videoElement: HTMLVideoElement | null;
   useWhisper: boolean; // 是否使用 Whisper 转录
+  useOcr: boolean; // 是否使用 OCR 识别
 }
 
 export function VideoProcessor() {
@@ -48,6 +49,7 @@ export function VideoProcessor() {
     error: null,
     videoElement: null,
     useWhisper: true, // 默认使用 Whisper
+    useOcr: true, // 默认使用 OCR
   });
 
   const processingAbortRef = useRef<AbortController | null>(null);
@@ -56,6 +58,12 @@ export function VideoProcessor() {
   const whisper = useWhisperTranscription({
     autoLoad: state.useWhisper,
     model: 'tiny', // 使用 tiny 模型以加快加载速度
+  });
+
+  // OCR hook
+  const ocr = useOcr({
+    autoLoad: state.useOcr,
+    language: 'ch', // 默认中文识别
   });
 
   const updateProgress = useCallback((step: ProcessingStep, progress: number) => {
@@ -141,16 +149,24 @@ export function VideoProcessor() {
     const extractedFrames = await extractKeyFrames(job, signal);
     if (signal.aborted) return;
 
-    // Step 4: Convert to KeyFrame format (65% - 75%)
+    // Step 4: Convert to KeyFrame format and run OCR (65% - 75%)
     updateProgress('running_ocr', 65);
-    const keyFrames = await Promise.all(
-      extractedFrames.map((frame) =>
-        frameExtractor.toKeyFrame(frame, job.id).then(kf => ({
-          ...kf,
-          ocr_text: null, // OCR is optional/simulated for now
-        }))
-      )
-    );
+    let keyFrames: KeyFrame[];
+
+    if (state.useOcr) {
+      // 执行 OCR 识别
+      keyFrames = await runOcrOnFrames(extractedFrames, job, signal);
+    } else {
+      // 不执行 OCR，直接转换
+      keyFrames = await Promise.all(
+        extractedFrames.map((frame) =>
+          frameExtractor.toKeyFrame(frame, job.id).then(kf => ({
+            ...kf,
+            ocr_text: null,
+          }))
+        )
+      );
+    }
 
     setState((prev) => ({ ...prev, frames: keyFrames }));
 
@@ -319,6 +335,68 @@ export function VideoProcessor() {
     return frames;
   };
 
+  const runOcrOnFrames = async (
+    extractedFrames: ExtractedFrame[],
+    job: VideoJob,
+    signal: AbortSignal
+  ): Promise<KeyFrame[]> => {
+    try {
+      // 加载 OCR 模型
+      if (!ocr.state.isModelLoaded) {
+        updateProgress('running_ocr', 66);
+        await ocr.loadModel();
+      }
+
+      if (signal.aborted) return [];
+
+      // 准备 OCR 输入数据
+      const ocrInputs = extractedFrames.map(frame => ({
+        imageData: Array.from(frame.imageData.data),
+        width: frame.imageData.width,
+        height: frame.imageData.height,
+        timestamp: frame.timestamp,
+      }));
+
+      // 执行批量 OCR 识别
+      const ocrResults = await ocr.recognizeBatch(
+        ocrInputs,
+        {
+          onProgress: (progress) => {
+            const overallProgress = 66 + (progress.progress / 100) * 9; // 66% - 75%
+            updateProgress('running_ocr', overallProgress);
+          },
+        }
+      );
+
+      if (signal.aborted) return [];
+
+      // 将 OCR 结果合并到 KeyFrame
+      const keyFrames = await Promise.all(
+        extractedFrames.map(async (frame, index) => {
+          const kf = await frameExtractor.toKeyFrame(frame, job.id);
+          const ocrText = ocrResults[index]?.text || null;
+          return {
+            ...kf,
+            ocr_text: ocrText?.trim() || null,
+          };
+        })
+      );
+
+      return keyFrames;
+    } catch (error) {
+      console.error('OCR failed:', error);
+      // OCR 失败时，返回不含 OCR 文本的 KeyFrame
+      return await Promise.all(
+        extractedFrames.map((frame) =>
+          frameExtractor.toKeyFrame(frame, job.id).then(kf => ({
+            ...kf,
+            ocr_text: null,
+          }))
+        )
+      );
+    }
+  };
+
   const generateChapters = async (
     job: VideoJob,
     signal: AbortSignal
@@ -368,6 +446,7 @@ export function VideoProcessor() {
       processingAbortRef.current = null;
     }
     whisper.reset();
+    ocr.reset();
     videoDecoder.release();
     frameExtractor.release();
     audioExtractor.release();
@@ -381,16 +460,18 @@ export function VideoProcessor() {
       error: null,
       videoElement: null,
       useWhisper: true,
+      useOcr: true,
     });
-  }, [whisper]);
+  }, [whisper, ocr]);
 
   const handleCancel = useCallback(async () => {
     if (processingAbortRef.current) {
       processingAbortRef.current.abort();
     }
     await whisper.cancel();
+    await ocr.cancel();
     setState((prev) => ({ ...prev, step: 'idle' }));
-  }, [whisper]);
+  }, [whisper, ocr]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -399,14 +480,31 @@ export function VideoProcessor() {
         processingAbortRef.current.abort();
       }
       whisper.reset();
+      ocr.reset();
       videoDecoder.release();
       frameExtractor.release();
       audioExtractor.release();
     };
-  }, [whisper]);
+  }, [whisper, ocr]);
+
+  const handleToggleWhisper = useCallback((enabled: boolean) => {
+    setState((prev) => ({ ...prev, useWhisper: enabled }));
+  }, []);
+
+  const handleToggleOcr = useCallback((enabled: boolean) => {
+    setState((prev) => ({ ...prev, useOcr: enabled }));
+  }, []);
 
   if (state.step === 'idle') {
-    return <VideoUploader onVideoSelect={handleVideoSelect} />;
+    return (
+      <VideoUploader
+        onVideoSelect={handleVideoSelect}
+        useWhisper={state.useWhisper}
+        useOcr={state.useOcr}
+        onToggleWhisper={handleToggleWhisper}
+        onToggleOcr={handleToggleOcr}
+      />
+    );
   }
 
   // 计算当前步骤描述
@@ -416,6 +514,11 @@ export function VideoProcessor() {
       if (whisper.isLoading) return 'Loading Whisper model...';
       if (whisper.isTranscribing) return `Transcribing: ${Math.round(whisper.state.progress.progress)}%`;
       return 'Transcribing...';
+    }
+    if (state.step === 'running_ocr') {
+      if (ocr.isLoading) return 'Loading OCR model...';
+      if (ocr.isRecognizing) return `Running OCR: ${Math.round(ocr.progress.progress)}%`;
+      return 'Running OCR...';
     }
     return `Processing: ${state.step.replace(/_/g, ' ')}`;
   };
@@ -442,6 +545,28 @@ export function VideoProcessor() {
               {!whisper.isLoading && !whisper.isTranscribing && 'Whisper ready'}
             </span>
             {whisper.isTranscribing && (
+              <button
+                onClick={handleCancel}
+                className="ml-auto px-3 py-1 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* OCR 状态指示器 */}
+      {state.useOcr && state.step === 'running_ocr' && (
+        <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-2 h-2 rounded-full ${ocr.isLoading ? 'bg-yellow-500 animate-pulse' : ocr.isRecognizing ? 'bg-purple-500 animate-pulse' : 'bg-green-500'}`} />
+            <span className="text-sm text-purple-800 dark:text-purple-200">
+              {ocr.isLoading && 'Loading OCR model...'}
+              {ocr.isRecognizing && `Running OCR: ${Math.round(ocr.progress.progress)}% (${ocr.progress.index || 0}/${ocr.progress.total || 0})`}
+              {!ocr.isLoading && !ocr.isRecognizing && 'OCR ready'}
+            </span>
+            {ocr.isRecognizing && (
               <button
                 onClick={handleCancel}
                 className="ml-auto px-3 py-1 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors"

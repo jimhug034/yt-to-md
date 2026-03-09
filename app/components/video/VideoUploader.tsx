@@ -6,6 +6,10 @@ import { Upload, Link as LinkIcon, FileVideo, X, AlertCircle, CheckCircle2, Yout
 interface VideoUploaderProps {
   onVideoSelect: (source: { type: 'file' | 'url'; data: string | File }) => void;
   isLoading?: boolean;
+  useWhisper?: boolean;
+  useOcr?: boolean;
+  onToggleWhisper?: (enabled: boolean) => void;
+  onToggleOcr?: (enabled: boolean) => void;
 }
 
 // Video file size limits (in bytes)
@@ -18,7 +22,14 @@ const YOUTUBE_PATTERNS = [
   /^([a-zA-Z0-9_-]{11})$/, // Direct video ID
 ];
 
-export function VideoUploader({ onVideoSelect, isLoading = false }: VideoUploaderProps) {
+export function VideoUploader({
+  onVideoSelect,
+  isLoading = false,
+  useWhisper = true,
+  useOcr = true,
+  onToggleWhisper,
+  onToggleOcr,
+}: VideoUploaderProps) {
   const [urlInput, setUrlInput] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [dragError, setDragError] = useState<string | null>(null);
@@ -161,6 +172,36 @@ export function VideoUploader({ onVideoSelect, isLoading = false }: VideoUploade
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6">
+      {/* Processing Options */}
+      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Processing Options</h3>
+        <div className="flex flex-wrap gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={useWhisper}
+              onChange={(e) => onToggleWhisper?.(e.target.checked)}
+              disabled={isLoading}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
+            />
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Enable Whisper Transcription
+            </span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={useOcr}
+              onChange={(e) => onToggleOcr?.(e.target.checked)}
+              disabled={isLoading}
+              className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 disabled:opacity-50"
+            />
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Enable OCR Text Recognition
+            </span>
+          </label>
+        </div>
+      </div>
       {/* File Upload Area */}
       <div
         className={getUploadZoneClassName()}

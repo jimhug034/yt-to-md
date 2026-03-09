@@ -3,7 +3,7 @@
  * 处理图像文字识别任务
  */
 
-import { getPaddleOCRModel, recognizeWithTesseract } from '../lib/models/paddleocr';
+import { getPaddleOCRModel } from '../lib/models/paddleocr';
 
 export interface OcrProcessorMessage {
   type: 'recognize' | 'recognizeBatch' | 'loadModel';
@@ -98,12 +98,7 @@ async function recognizeImage(message: OcrProcessorMessage) {
     const ocrResult = await ocrModel.recognize(imageSource as ImageData | Blob);
     result = ocrResult.text;
   } else {
-    // 使用 Tesseract 作为后备
-    // Tesseract 需要 ImageData | HTMLImageElement | Blob，如果是 URL 则跳过
-    // @ts-ignore
-    if (imageSource instanceof ImageData || imageSource instanceof Blob) {
-      result = await recognizeWithTesseract(imageSource, message.language || 'eng');
-    }
+    throw new Error('OCR model not loaded. Please call loadModel first.');
   }
 
   self.postMessage({
@@ -134,7 +129,7 @@ async function recognizeBatch(message: OcrProcessorMessage) {
       const ocrResult = await ocrModel.recognize(imageData);
       result = ocrResult.text;
     } else {
-      result = await recognizeWithTesseract(imageData, message.language || 'eng');
+      throw new Error('OCR model not loaded. Please call loadModel first.');
     }
 
     results.push(result);

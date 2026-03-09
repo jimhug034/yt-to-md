@@ -299,7 +299,8 @@ class OcrWorkerManager implements WorkerWrapper<OcrWorkerMessage, OcrWorkerRespo
   }
 
   private handleMessage(data: OcrWorkerResponse): void {
-    const entry = Array.from(this.pendingMessages.values())[0];
+    const entry = this.pendingMessages.get(data._id);
+
     if (!entry) return;
 
     switch (data.type) {
@@ -308,20 +309,21 @@ class OcrWorkerManager implements WorkerWrapper<OcrWorkerMessage, OcrWorkerRespo
         break;
 
       case 'complete':
-        this.pendingMessages.clear();
+        this.pendingMessages.delete(data._id);
         entry.resolve(data);
         break;
 
       case 'status':
+        // 状态更新，不解析 promise
         break;
 
       case 'aborted':
-        this.pendingMessages.clear();
+        this.pendingMessages.delete(data._id);
         entry.reject(new Error('OCR worker operation aborted'));
         break;
 
       case 'error':
-        this.pendingMessages.clear();
+        this.pendingMessages.delete(data._id);
         entry.reject(new Error(data.error || 'Unknown OCR worker error'));
         break;
     }
@@ -329,7 +331,10 @@ class OcrWorkerManager implements WorkerWrapper<OcrWorkerMessage, OcrWorkerRespo
 
   // 便捷方法
   async loadModel(options?: OcrWorkerOptions): Promise<void> {
-    await this.send({ type: 'loadModel', options });
+    const response = await this.send({ type: 'loadModel', options, _id: 0 }) as OcrWorkerResponse;
+    if (response.type === 'error') {
+      throw new Error(response.error);
+    }
   }
 
   async recognize(
@@ -347,6 +352,7 @@ class OcrWorkerManager implements WorkerWrapper<OcrWorkerMessage, OcrWorkerRespo
         timestamp: options?.timestamp,
       }],
       options,
+      _id: 0,
     };
 
     const response = await this.send(message) as OcrWorkerResponse & {
@@ -369,6 +375,7 @@ class OcrWorkerManager implements WorkerWrapper<OcrWorkerMessage, OcrWorkerRespo
       type: 'recognizeBatch',
       images,
       options,
+      _id: 0,
     };
 
     const response = await this.send(message, { onProgress }) as OcrWorkerResponse & {
@@ -383,11 +390,11 @@ class OcrWorkerManager implements WorkerWrapper<OcrWorkerMessage, OcrWorkerRespo
   }
 
   async abort(): Promise<void> {
-    await this.send({ type: 'abort' });
+    await this.send({ type: 'abort', _id: 0 });
   }
 
   async getStatus(): Promise<{ isModelLoaded: boolean; isProcessing: boolean }> {
-    const response = await this.send({ type: 'getStatus' }) as OcrWorkerResponse & {
+    const response = await this.send({ type: 'getStatus', _id: 0 }) as OcrWorkerResponse & {
       isModelLoaded?: boolean;
       isProcessing?: boolean;
     };
