@@ -3,12 +3,44 @@ use wasm_bindgen::prelude::*;
 
 mod parser;
 mod processor;
+mod database;
+mod video;
+mod audio;
+mod speech;
+mod frames;
+mod ocr;
+mod ai;
+mod output;
 
 use parser::{
     markdown as markdown_parser, srt as srt_parser, ttml as ttml_parser, vtt as vtt_parser, Caption,
 };
 
 use processor::{get_stats, process_subtitles as process_subtitles_internal, ProcessorOptions};
+
+// 导出数据库类型
+pub use database::{Database, JobStatus, VideoJob, TranscriptSegment, KeyFrame, Chapter, RustSQLite3};
+
+// 导出视频处理模块
+pub use video::{VideoMetadata, ProcessOptions};
+
+// 导出音频处理
+pub use audio::AudioProcessor;
+
+// 导出语音识别
+pub use speech::SpeechRecognizer;
+
+// 导出关键帧提取
+pub use frames::FrameExtractor;
+
+// 导出 OCR
+pub use ocr::OcrProcessor;
+
+// 导出 AI 处理
+pub use ai::{Summarizer, Chapterizer, TextProcessor};
+
+// 导出输出模块
+pub use output::{PptxGenerator, MarkdownGenerator};
 
 /// Parse YouTube TTML format and return JSON
 /// Each caption has start (seconds), end (seconds), and text fields

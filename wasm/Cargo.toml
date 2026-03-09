@@ -12,7 +12,35 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 quick-xml = { version = "0.37", features = ["serialize"] }
 js-sys = "0.3"
+wasm-bindgen-futures = "0.4"
 
 [dependencies.web-sys]
 version = "0.3"
-features = []
+features = [
+    "HtmlVideoElement",
+    "HtmlCanvasElement",
+    "CanvasRenderingContext2d",
+    "AudioContext",
+    "AudioBuffer",
+    "Blob",
+    "File",
+    "Storage",
+    "Window",
+]
+
+# 时间处理 - WASM 兼容配置
+chrono = { version = "0.4", features = ["serde", "wasmbind"], default-features = false }
+
+# UUID 生成 - WASM 兼容
+uuid = { version = "1.0", features = ["v4", "serde", "js"] }
+
+# PPTX 生成
+zip = { version = "2.0", default-features = false }
+xml-rs = "0.8"
+
+# 正则表达式（用于 OCR 文本清理）
+regex = "1.10"
+
+# SQLite 相关 - 用于数据持久化
+# 注意：在 WASM 环境中，我们通过 JS 端的 sql.js 来操作 SQLite
+# Rust 端负责数据模型和序列化
