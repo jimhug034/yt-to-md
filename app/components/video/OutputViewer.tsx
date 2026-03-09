@@ -17,6 +17,7 @@ import {
   Calendar,
   Clock,
   Film,
+  Loader2,
 } from 'lucide-react';
 import type { VideoJob, TranscriptSegment, Chapter, KeyFrame } from '@/app/lib/wasm';
 
@@ -31,6 +32,13 @@ interface OutputViewerProps {
 type ViewMode = 'preview' | 'markdown' | 'json' | 'statistics';
 type ExportFormat = 'markdown' | 'json' | 'txt' | 'srt';
 
+interface PptxExportProgress {
+  isExporting: boolean;
+  progress: number;
+  message: string;
+  slideCount?: number;
+}
+
 export function OutputViewer({
   job,
   segments,
@@ -42,6 +50,11 @@ export function OutputViewer({
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set(chapters.map(c => c.id)));
   const [copied, setCopied] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [pptxProgress, setPptxProgress] = useState<PptxExportProgress>({
+    isExporting: false,
+    progress: 0,
+    message: '',
+  });
   const contentRef = useRef<HTMLDivElement>(null);
 
   const formatTime = useCallback((seconds: number) => {
@@ -172,6 +185,77 @@ export function OutputViewer({
     }
   }, [job, segments, chapters, frames, generateMarkdown, generateSRT, formatTime, downloadFile]);
 
+  const handlePptxExport = useCallback(async () => {
+    setPptxProgress({ isExporting: true, progress: 0, message: 'Initializing...' });
+
+    try {
+      // 动态导入 PPTX 导出模块
+      const { createPptxExporter } = await import('@/app/lib/export');
+
+      const exporter = createPptxExporter({
+        title: job.file_name,
+        includeTitleSlide: true,
+        includeTableOfContents: chapters.length > 0,
+        includeThankYouSlide: true,
+        onProgress: (current, total, message) => {
+          const progress = total > 0 ? Math.round((current / total) * 100) : 0;
+          setPptxProgress({
+            isExporting: true,
+            progress,
+            message,
+            slideCount: current,
+          });
+        },
+      });
+
+      const result = await exporter.generateFromVideoData(
+        job.file_name,
+        chapters,
+        segments,
+        frames.filter(f => f.image_data && f.image_data.length > 0), // 只包含有图片数据的帧
+      );
+
+      if (result.success) {
+        setPptxProgress({
+          isExporting: false,
+          progress: 100,
+          message: 'PPTX generated successfully!',
+          slideCount: result.slideCount,
+        });
+
+        // 自动下载
+        await exporter.download(result);
+
+        // 3秒后重置状态
+        setTimeout(() => {
+          setPptxProgress({ isExporting: false, progress: 0, message: '' });
+        }, 3000);
+      } else {
+        setPptxProgress({
+          isExporting: false,
+          progress: 0,
+          message: result.error || 'Export failed',
+        });
+
+        // 显示错误
+        setTimeout(() => {
+          setPptxProgress({ isExporting: false, progress: 0, message: '' });
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('PPTX export error:', error);
+      setPptxProgress({
+        isExporting: false,
+        progress: 0,
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      setTimeout(() => {
+        setPptxProgress({ isExporting: false, progress: 0, message: '' });
+      }, 3000);
+    }
+  }, [job, segments, chapters, frames]);
+
   const handleCopy = useCallback(async () => {
     const content = generateMarkdown();
     await navigator.clipboard.writeText(content);
@@ -260,11 +344,21 @@ export function OutputViewer({
           Plain Text
         </button>
         <button
-          onClick={() => alert('PPTX export coming soon!')}
-          className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow"
+          onClick={handlePptxExport}
+          disabled={pptxProgress.isExporting}
+          className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed relative"
         >
-          <Presentation className="w-4 h-4" />
-          PPTX
+          {pptxProgress.isExporting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {pptxProgress.progress > 0 ? `${pptxProgress.progress}%` : 'Exporting...'}
+            </>
+          ) : (
+            <>
+              <Presentation className="w-4 h-4" />
+              PPTX
+            </>
+          )}
         </button>
         <div className="ml-auto flex items-center gap-2">
           <button
@@ -285,6 +379,49 @@ export function OutputViewer({
           </button>
         </div>
       </div>
+
+      {/* PPTX Export Progress */}
+      {pptxProgress.isExporting && (
+        <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <Loader2 className="w-5 h-5 text-orange-600 dark:text-orange-400 animate-spin" />
+            <span className="font-medium text-orange-800 dark:text-orange-400">
+              Exporting to PPTX
+            </span>
+            {pptxProgress.slideCount !== undefined && (
+              <span className="ml-auto text-sm text-orange-600 dark:text-orange-300">
+                Slide {pptxProgress.slideCount}
+              </span>
+            )}
+          </div>
+          <div className="h-2 bg-orange-200 dark:bg-orange-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-orange-500 transition-all duration-300"
+              style={{ width: `${pptxProgress.progress}%` }}
+            />
+          </div>
+          {pptxProgress.message && (
+            <p className="text-xs text-orange-600 dark:text-orange-300 mt-2">{pptxProgress.message}</p>
+          )}
+        </div>
+      )}
+
+      {/* PPTX Export Success Message */}
+      {!pptxProgress.isExporting && pptxProgress.progress === 100 && pptxProgress.message && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <span className="font-medium text-green-800 dark:text-green-400">
+              {pptxProgress.message}
+            </span>
+            {pptxProgress.slideCount !== undefined && (
+              <span className="text-sm text-green-600 dark:text-green-300">
+                ({pptxProgress.slideCount} slides)
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* View Mode Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
