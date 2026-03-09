@@ -8,6 +8,7 @@ import { FrameGallery } from './FrameGallery';
 import { OutputViewer } from './OutputViewer';
 import { useWhisperTranscription, useOcr } from '@/app/hooks';
 import { audioExtractor } from '@/app/lib/audio';
+import { ContentAnalyzer } from '@/app/lib/content';
 import type { VideoJob, TranscriptSegment, KeyFrame, Chapter } from '@/app/lib/wasm';
 import { videoDecoder } from '@/app/lib/video/decoder';
 import { frameExtractor } from '@/app/lib/video/frame-extractor';
@@ -401,43 +402,19 @@ export function VideoProcessor() {
     job: VideoJob,
     signal: AbortSignal
   ) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
     const { segments } = state;
     if (segments.length === 0) return;
 
-    // Simple chaptering based on time
-    const chapterDuration = 15; // seconds per chapter
-    const chapters: Chapter[] = [];
+    // 使用内容分析器生成章节
+    const analyzer = new ContentAnalyzer(
+      { maxSentences: 3, removeFillers: true, mergeDuplicates: true },
+      { minChapterDuration: 60, silenceThreshold: 3 }
+    );
 
-    for (let startTime = 0; startTime < job.duration; startTime += chapterDuration) {
-      const endTime = Math.min(startTime + chapterDuration, job.duration);
+    // 生成章节（带摘要和关键词）
+    const enrichedChapters = analyzer.chapterize(segments, job.id, job.duration);
 
-      // Find segments in this chapter
-      const chapterSegments = segments.filter(
-        s => s.start_time >= startTime && s.end_time <= endTime
-      );
-
-      const title = chapterSegments.length > 0
-        ? `Chapter ${chapters.length + 1}: ${chapterSegments[0].text.slice(0, 30)}...`
-        : `Chapter ${chapters.length + 1}`;
-
-      const summary = chapterSegments
-        .map(s => s.text)
-        .join(' ')
-        .slice(0, 200);
-
-      chapters.push({
-        id: crypto.randomUUID(),
-        job_id: job.id,
-        title,
-        start_time: startTime,
-        end_time: endTime,
-        summary,
-      });
-    }
-
-    setState((prev) => ({ ...prev, chapters }));
+    setState((prev) => ({ ...prev, chapters: enrichedChapters }));
   };
 
   const handleReset = useCallback(() => {
