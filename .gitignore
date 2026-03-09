@@ -47,3 +47,6 @@ public/yt_subtitle_wasm_bg.wasm
 
 test-results
 playwright-report
+
+# Git worktrees
+.worktrees/
