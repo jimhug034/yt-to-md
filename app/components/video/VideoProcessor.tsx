@@ -9,11 +9,13 @@ import { OutputViewer } from './OutputViewer';
 import { useWhisperTranscription, useOcr } from '@/app/hooks';
 import { audioExtractor } from '@/app/lib/audio';
 import { ContentAnalyzer } from '@/app/lib/content';
+import { dbManager } from '@/app/lib/database';
 import type { VideoJob, TranscriptSegment, KeyFrame, Chapter } from '@/app/lib/wasm';
 import { videoDecoder } from '@/app/lib/video/decoder';
 import { frameExtractor } from '@/app/lib/video/frame-extractor';
 import type { ExtractedFrame } from '@/app/lib/video/frame-extractor';
 import type { WhisperSegment } from '@/app/workers';
+import type { Settings } from '@/app/components/settings';
 
 export type ProcessingStep =
   | 'idle'
@@ -39,7 +41,11 @@ interface ProcessingState {
   useOcr: boolean; // 是否使用 OCR 识别
 }
 
-export function VideoProcessor() {
+interface VideoProcessorProps {
+  settings?: Partial<Settings>;
+}
+
+export function VideoProcessor({ settings }: VideoProcessorProps = {}) {
   const [state, setState] = useState<ProcessingState>({
     step: 'idle',
     progress: 0,
@@ -55,16 +61,17 @@ export function VideoProcessor() {
 
   const processingAbortRef = useRef<AbortController | null>(null);
 
-  // Whisper hook
+  // Whisper hook - 根据设置选择模型
   const whisper = useWhisperTranscription({
     autoLoad: state.useWhisper,
-    model: 'tiny', // 使用 tiny 模型以加快加载速度
+    model: settings?.whisperModel || 'tiny',
+    language: settings?.whisperLanguage || 'auto',
   });
 
-  // OCR hook
+  // OCR hook - 根据设置选择语言
   const ocr = useOcr({
-    autoLoad: state.useOcr,
-    language: 'ch', // 默认中文识别
+    autoLoad: state.useOcr && (settings?.ocrEnabled !== false),
+    language: settings?.ocrLanguage === 'auto' ? 'ch' : (settings?.ocrLanguage || 'ch'),
   });
 
   const updateProgress = useCallback((step: ProcessingStep, progress: number) => {
@@ -176,8 +183,67 @@ export function VideoProcessor() {
     await generateChapters(job, signal);
     if (signal.aborted) return;
 
+    // Step 6: Save to database (95% - 100%)
+    updateProgress('generating_summary', 95);
+    await saveJobToDatabase(job, signal);
+
     // Complete
     updateProgress('complete', 100);
+  };
+
+  const saveJobToDatabase = async (
+    job: VideoJob,
+    signal: AbortSignal
+  ) => {
+    try {
+      await dbManager.init();
+
+      // 更新 job 状态为完成
+      await dbManager.updateJobStatus(job.id, 'Completed');
+      await dbManager.updateJobProgress(job.id, 100);
+
+      // 保存 segments
+      const { segments } = state;
+      for (const segment of segments) {
+        if (signal.aborted) return;
+        await dbManager.createSegment({
+          job_id: job.id,
+          start_time: segment.start_time,
+          end_time: segment.end_time,
+          text: segment.text,
+          confidence: segment.confidence,
+        });
+      }
+
+      // 保存 frames
+      const { frames } = state;
+      for (const frame of frames) {
+        if (signal.aborted) return;
+        await dbManager.createFrame(
+          job.id,
+          frame.timestamp,
+          new Uint8Array(frame.image_data)
+        );
+      }
+
+      // 保存 chapters
+      const { chapters } = state;
+      for (const chapter of chapters) {
+        if (signal.aborted) return;
+        await dbManager.createChapter({
+          job_id: job.id,
+          title: chapter.title,
+          start_time: chapter.start_time,
+          end_time: chapter.end_time,
+          summary: chapter.summary,
+        });
+      }
+
+      console.log('Job saved to database:', job.id);
+    } catch (error) {
+      console.error('Failed to save job to database:', error);
+      // 不中断流程，继续完成
+    }
   };
 
   const extractAudioAndTranscribe = async (

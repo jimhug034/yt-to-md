@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Youtube, FileText, RefreshCw, AlertCircle, Clock, Languages, Globe } from "lucide-react";
+import { Youtube, FileText, RefreshCw, AlertCircle, Clock, Languages, Globe, Film } from "lucide-react";
+import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter, usePathname } from "@/i18n";
 import { UrlInput } from "../components/UrlInput";
@@ -313,6 +314,16 @@ export default function Home() {
                   </span>
                 </div>
               )}
+              <Link
+                href="/video"
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-800/50 text-blue-700 dark:text-blue-300 rounded-lg transition-colors"
+                title="视频处理"
+              >
+                <Film className="h-4 w-4" />
+                <span className="text-sm font-medium hidden sm:inline">
+                  视频处理
+                </span>
+              </Link>
               <button
                 onClick={handleLanguageSwitch}
                 className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
