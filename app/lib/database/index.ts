@@ -4,8 +4,28 @@
  *
  * 支持的持久化方案：
  * 1. Rust SQLite3 (推荐) - 纯 Rust WASM 实现，基于 LocalStorage
- * 2. IndexedDB - 备选方案
+ * 2. IndexedDB - 备选方案，更大存储容量
  */
+
+// ============================================
+// 新的数据库管理器
+// ============================================
+export {
+  dbManager,
+  type JobInput,
+  type SegmentInput,
+  type ChapterInput,
+  type DbStats as ManagerDbStats,
+  type JobStatusType,
+} from './manager';
+
+export {
+  indexedDb,
+  type DbFrame,
+  type DbSegment,
+  type DbChapter,
+  type DbJob as IDBJob,
+} from './indexed-db';
 
 // ============================================
 // Rust SQLite3 实现 (推荐)

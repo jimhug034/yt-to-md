@@ -19,7 +19,7 @@ use parser::{
 use processor::{get_stats, process_subtitles as process_subtitles_internal, ProcessorOptions};
 
 // 导出数据库类型
-pub use database::{Database, JobStatus, VideoJob, TranscriptSegment, KeyFrame, Chapter, RustSQLite3};
+pub use database::{Database, JobStatus, VideoJob, TranscriptSegment, KeyFrame, Chapter, RustSQLite3, SQLiteHelper};
 
 // 导出视频处理模块
 pub use video::{VideoMetadata, ProcessOptions};

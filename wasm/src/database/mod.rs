@@ -3,6 +3,8 @@
 
 mod schema;
 mod rust_sqlite;
+mod sqlite;
 
 pub use schema::*;
 pub use rust_sqlite::RustSQLite3;
+pub use sqlite::SQLiteHelper;
