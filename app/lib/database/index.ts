@@ -17,7 +17,7 @@ export {
   type ChapterInput,
   type DbStats as ManagerDbStats,
   type JobStatusType,
-} from './manager';
+} from "./manager";
 
 export {
   indexedDb,
@@ -25,7 +25,7 @@ export {
   type DbSegment,
   type DbChapter,
   type DbJob as IDBJob,
-} from './indexed-db';
+} from "./indexed-db";
 
 // ============================================
 // Rust SQLite3 实现 (推荐)
@@ -56,7 +56,7 @@ export {
   type FrameRow,
   type ChapterRow,
   type DatabaseStats as RustDatabaseStats,
-} from './rust-sqlite-wrapper';
+} from "./rust-sqlite-wrapper";
 
 // ============================================
 // IndexedDB 实现 (备选方案)
@@ -66,7 +66,7 @@ export {
   getDatabase,
   closeDatabase as closeIndexedDB,
   resetDatabase as resetIndexedDB,
-} from './indexeddb';
+} from "./indexeddb";
 
 // Migration utilities
 export {
@@ -75,7 +75,7 @@ export {
   exportDatabaseForMigration,
   importDatabaseForMigration,
   getMigrationStatus,
-} from './migrations';
+} from "./migrations";
 
 // Export/import utilities
 export {
@@ -90,15 +90,10 @@ export {
   type ExportResult,
   type ImportResult,
   type ExportFormat,
-} from './export';
+} from "./export";
 
 // React hooks
-export {
-  useJobs,
-  useJob,
-  useDatabaseStats,
-  useDatabase,
-} from './hooks';
+export { useJobs, useJob, useDatabaseStats, useDatabase } from "./hooks";
 
 // Re-export types
 export type {
@@ -111,4 +106,4 @@ export type {
   DatabaseStats,
   JobExportData,
   ExportOptions,
-} from '../models/types';
+} from "../models/types";

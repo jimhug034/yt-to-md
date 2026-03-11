@@ -5,12 +5,8 @@
  * 提供统一的语音识别接口
  */
 
-import { whisperWorker } from '../../workers';
-import type {
-  WhisperWorkerOptions,
-  WhisperResult,
-  WhisperSegment,
-} from '../../workers';
+import { whisperWorker } from "../../workers";
+import type { WhisperWorkerOptions, WhisperResult, WhisperSegment } from "../../workers";
 
 // ============================================
 // 类型定义
@@ -42,7 +38,7 @@ class WhisperManagerClass {
   private state: TranscriptionState = {
     isModelLoaded: false,
     isProcessing: false,
-    progress: { stage: '', progress: 0 },
+    progress: { stage: "", progress: 0 },
     error: null,
   };
 
@@ -60,7 +56,7 @@ class WhisperManagerClass {
   }
 
   private notifyListeners() {
-    this.listeners.forEach(listener => listener(this.state));
+    this.listeners.forEach((listener) => listener(this.state));
   }
 
   subscribe(listener: (state: TranscriptionState) => void): () => void {
@@ -85,7 +81,7 @@ class WhisperManagerClass {
 
     this.setState({
       isProcessing: true,
-      progress: { stage: '初始化...', progress: 0 },
+      progress: { stage: "初始化...", progress: 0 },
       error: null,
     });
 
@@ -94,12 +90,12 @@ class WhisperManagerClass {
       this.setState({
         isModelLoaded: true,
         isProcessing: false,
-        progress: { stage: '模型加载完成', progress: 100 },
+        progress: { stage: "模型加载完成", progress: 100 },
       });
     } catch (error) {
       this.setState({
         isProcessing: false,
-        error: error instanceof Error ? error.message : '模型加载失败',
+        error: error instanceof Error ? error.message : "模型加载失败",
       });
       throw error;
     }
@@ -117,7 +113,7 @@ class WhisperManagerClass {
    */
   private async preprocessAudio(
     audio: AudioData,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
   ): Promise<Float32Array> {
     onProgress?.(10);
 
@@ -181,11 +177,7 @@ class WhisperManagerClass {
   /**
    * 重采样音频
    */
-  private resample(
-    audio: Float32Array,
-    fromRate: number,
-    toRate: number
-  ): Float32Array {
+  private resample(audio: Float32Array, fromRate: number, toRate: number): Float32Array {
     if (fromRate === toRate) return audio;
 
     const ratio = fromRate / toRate;
@@ -199,9 +191,7 @@ class WhisperManagerClass {
       const srcIndexFrac = srcIndex - srcIndexInt;
 
       if (srcIndexInt + 1 < audio.length) {
-        result[i] =
-          audio[srcIndexInt] * (1 - srcIndexFrac) +
-          audio[srcIndexInt + 1] * srcIndexFrac;
+        result[i] = audio[srcIndexInt] * (1 - srcIndexFrac) + audio[srcIndexInt + 1] * srcIndexFrac;
       } else {
         result[i] = audio[srcIndexInt] || 0;
       }
@@ -240,11 +230,11 @@ class WhisperManagerClass {
     audio: AudioData,
     options?: WhisperWorkerOptions & {
       onProgress?: (progress: TranscriptionProgress) => void;
-    }
+    },
   ): Promise<{ result: WhisperResult; segments: WhisperSegment[] }> {
     // 检查是否已取消
     if (this.abortController?.signal.aborted) {
-      throw new Error('Transcription aborted');
+      throw new Error("Transcription aborted");
     }
 
     this.currentJobId = crypto.randomUUID();
@@ -252,7 +242,7 @@ class WhisperManagerClass {
 
     this.setState({
       isProcessing: true,
-      progress: { stage: '预处理音频...', progress: 0 },
+      progress: { stage: "预处理音频...", progress: 0 },
       error: null,
     });
 
@@ -261,7 +251,7 @@ class WhisperManagerClass {
       const preprocessedAudio = await this.preprocessAudio(audio, (progress) => {
         this.setState({
           progress: {
-            stage: '预处理音频...',
+            stage: "预处理音频...",
             progress: progress * 0.2, // 预处理占总进度的 20%
           },
         });
@@ -270,7 +260,7 @@ class WhisperManagerClass {
 
       // 检查取消
       if (this.abortController.signal.aborted) {
-        throw new Error('Transcription aborted');
+        throw new Error("Transcription aborted");
       }
 
       // 调用 Worker 进行转录
@@ -283,24 +273,24 @@ class WhisperManagerClass {
         (progress) => {
           this.setState({
             progress: {
-              stage: '转录中...',
+              stage: "转录中...",
               progress: 20 + progress * 0.8, // 转录占总进度的 80%
             },
           });
           options?.onProgress?.(this.state.progress);
-        }
+        },
       );
 
       this.setState({
         isProcessing: false,
-        progress: { stage: '转录完成', progress: 100 },
+        progress: { stage: "转录完成", progress: 100 },
       });
 
       return response;
     } catch (error) {
       this.setState({
         isProcessing: false,
-        error: error instanceof Error ? error.message : '转录失败',
+        error: error instanceof Error ? error.message : "转录失败",
       });
       throw error;
     }
@@ -315,7 +305,7 @@ class WhisperManagerClass {
     await whisperWorker.abort();
     this.setState({
       isProcessing: false,
-      progress: { stage: '已取消', progress: 0 },
+      progress: { stage: "已取消", progress: 0 },
     });
     this.currentJobId = null;
   }
@@ -325,7 +315,7 @@ class WhisperManagerClass {
     this.currentJobId = null;
     this.setState({
       isProcessing: false,
-      progress: { stage: '', progress: 0 },
+      progress: { stage: "", progress: 0 },
       error: null,
     });
   }

@@ -1,10 +1,18 @@
-'use client';
+"use client";
 
-import { useRef, useState, useCallback } from 'react';
-import { Upload, Link as LinkIcon, FileVideo, X, AlertCircle, CheckCircle2, Youtube } from 'lucide-react';
+import { useRef, useState, useCallback } from "react";
+import {
+  Upload,
+  Link as LinkIcon,
+  FileVideo,
+  X,
+  AlertCircle,
+  CheckCircle2,
+  Youtube,
+} from "lucide-react";
 
 interface VideoUploaderProps {
-  onVideoSelect: (source: { type: 'file' | 'url'; data: string | File }) => void;
+  onVideoSelect: (source: { type: "file" | "url"; data: string | File }) => void;
   isLoading?: boolean;
   useWhisper?: boolean;
   useOcr?: boolean;
@@ -14,7 +22,13 @@ interface VideoUploaderProps {
 
 // Video file size limits (in bytes)
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
-const SUPPORTED_VIDEO_FORMATS = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/mpeg'];
+const SUPPORTED_VIDEO_FORMATS = [
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-msvideo",
+  "video/mpeg",
+];
 
 // YouTube URL patterns
 const YOUTUBE_PATTERNS = [
@@ -30,7 +44,7 @@ export function VideoUploader({
   onToggleWhisper,
   onToggleOcr,
 }: VideoUploaderProps) {
-  const [urlInput, setUrlInput] = useState('');
+  const [urlInput, setUrlInput] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [dragError, setDragError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -38,20 +52,20 @@ export function VideoUploader({
   const dragCounterRef = useRef(0);
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const isValidVideoFile = (file: File): boolean => {
     if (!file.type) {
       // If no type, check extension
-      const validExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mpeg', '.mkv'];
-      return validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+      const validExtensions = [".mp4", ".webm", ".mov", ".avi", ".mpeg", ".mkv"];
+      return validExtensions.some((ext) => file.name.toLowerCase().endsWith(ext));
     }
-    return SUPPORTED_VIDEO_FORMATS.includes(file.type) || file.type.startsWith('video/');
+    return SUPPORTED_VIDEO_FORMATS.includes(file.type) || file.type.startsWith("video/");
   };
 
   const extractYoutubeVideoId = useCallback((input: string): string | null => {
@@ -66,24 +80,33 @@ export function VideoUploader({
 
   const validateFile = useCallback((file: File): { valid: boolean; error?: string } => {
     if (!isValidVideoFile(file)) {
-      return { valid: false, error: 'Invalid file format. Please upload a video file (MP4, WebM, MOV, AVI)' };
+      return {
+        valid: false,
+        error: "Invalid file format. Please upload a video file (MP4, WebM, MOV, AVI)",
+      };
     }
     if (file.size > MAX_FILE_SIZE) {
-      return { valid: false, error: `File too large. Maximum size is ${formatFileSize(MAX_FILE_SIZE)}` };
+      return {
+        valid: false,
+        error: `File too large. Maximum size is ${formatFileSize(MAX_FILE_SIZE)}`,
+      };
     }
     return { valid: true };
   }, []);
 
-  const handleFileChange = useCallback((file: File) => {
-    setDragError(null);
-    const validation = validateFile(file);
-    if (!validation.valid) {
-      setDragError(validation.error || 'Invalid file');
-      return;
-    }
-    setSelectedFile(file);
-    onVideoSelect({ type: 'file', data: file });
-  }, [onVideoSelect, validateFile]);
+  const handleFileChange = useCallback(
+    (file: File) => {
+      setDragError(null);
+      const validation = validateFile(file);
+      if (!validation.valid) {
+        setDragError(validation.error || "Invalid file");
+        return;
+      }
+      setSelectedFile(file);
+      onVideoSelect({ type: "file", data: file });
+    },
+    [onVideoSelect, validateFile],
+  );
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -109,55 +132,65 @@ export function VideoUploader({
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    dragCounterRef.current = 0;
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
+      dragCounterRef.current = 0;
 
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFileChange(file);
-    }
-  }, [handleFileChange]);
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        handleFileChange(file);
+      }
+    },
+    [handleFileChange],
+  );
 
-  const handleUrlSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    setDragError(null);
+  const handleUrlSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      setDragError(null);
 
-    if (!urlInput.trim()) {
-      setDragError('Please enter a URL');
-      return;
-    }
+      if (!urlInput.trim()) {
+        setDragError("Please enter a URL");
+        return;
+      }
 
-    const videoId = extractYoutubeVideoId(urlInput.trim());
-    if (videoId) {
-      // Valid YouTube URL
-      onVideoSelect({ type: 'url', data: urlInput.trim() });
-    } else if (urlInput.trim().startsWith('http')) {
-      // Direct video URL
-      onVideoSelect({ type: 'url', data: urlInput.trim() });
-    } else {
-      setDragError('Invalid URL. Please enter a valid YouTube or video URL');
-    }
-  }, [urlInput, onVideoSelect, extractYoutubeVideoId]);
+      const videoId = extractYoutubeVideoId(urlInput.trim());
+      if (videoId) {
+        // Valid YouTube URL
+        onVideoSelect({ type: "url", data: urlInput.trim() });
+      } else if (urlInput.trim().startsWith("http")) {
+        // Direct video URL
+        onVideoSelect({ type: "url", data: urlInput.trim() });
+      } else {
+        setDragError("Invalid URL. Please enter a valid YouTube or video URL");
+      }
+    },
+    [urlInput, onVideoSelect, extractYoutubeVideoId],
+  );
 
-  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileChange(file);
-    }
-  }, [handleFileChange]);
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        handleFileChange(file);
+      }
+    },
+    [handleFileChange],
+  );
 
   const clearFile = useCallback(() => {
     setSelectedFile(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   }, []);
 
   const getUploadZoneClassName = () => {
-    const baseClasses = 'relative border-2 border-dashed rounded-xl p-8 md:p-12 text-center transition-all duration-300';
+    const baseClasses =
+      "relative border-2 border-dashed rounded-xl p-8 md:p-12 text-center transition-all duration-300";
     if (dragActive) {
       return `${baseClasses} border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg shadow-blue-500/20`;
     }
@@ -174,7 +207,9 @@ export function VideoUploader({
     <div className="w-full max-w-2xl mx-auto space-y-6">
       {/* Processing Options */}
       <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Processing Options</h3>
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          Processing Options
+        </h3>
         <div className="flex flex-wrap gap-4">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -256,11 +291,11 @@ export function VideoUploader({
         ) : (
           // Default state
           <div className="space-y-4">
-            <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center transition-colors ${
-              dragActive
-                ? 'bg-blue-100 dark:bg-blue-900/30'
-                : 'bg-gray-100 dark:bg-gray-800'
-            }`}>
+            <div
+              className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center transition-colors ${
+                dragActive ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800"
+              }`}
+            >
               {dragActive ? (
                 <Upload className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-bounce" />
               ) : (
@@ -269,7 +304,7 @@ export function VideoUploader({
             </div>
             <div>
               <p className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                {dragActive ? 'Drop your video here' : 'Upload a video file'}
+                {dragActive ? "Drop your video here" : "Upload a video file"}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                 Drag and drop or click to browse
@@ -299,7 +334,9 @@ export function VideoUploader({
           <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400">or</span>
+          <span className="px-4 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400">
+            or
+          </span>
         </div>
       </div>
 
@@ -324,8 +361,8 @@ export function VideoUploader({
               disabled={isLoading}
               className={`w-full pl-11 pr-4 py-3 rounded-lg border bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 dragError && urlInput
-                  ? 'border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 dark:border-gray-600'
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-gray-300 dark:border-gray-600"
               }`}
             />
           </div>

@@ -4,7 +4,7 @@
  */
 
 // @ts-ignore - sql.js doesn't have built-in types
-import initSqlJs from 'sql.js';
+import initSqlJs from "sql.js";
 
 export type QueryResult = any[][] | { [key: string]: any }[];
 
@@ -26,7 +26,7 @@ export class SQLiteDatabase {
       this.createTables();
       this.isInitialized = true;
     } catch (error) {
-      console.error('Failed to initialize SQLite:', error);
+      console.error("Failed to initialize SQLite:", error);
       throw error;
     }
   }
@@ -63,7 +63,7 @@ export class SQLiteDatabase {
         FOREIGN KEY (job_id) REFERENCES jobs(id)
       )
     `);
-    this.db.run('CREATE INDEX IF NOT EXISTS idx_segments_time ON transcript_segments(start_time)');
+    this.db.run("CREATE INDEX IF NOT EXISTS idx_segments_time ON transcript_segments(start_time)");
 
     // 创建关键帧表
     this.db.run(`
@@ -78,7 +78,7 @@ export class SQLiteDatabase {
         FOREIGN KEY (job_id) REFERENCES jobs(id)
       )
     `);
-    this.db.run('CREATE INDEX IF NOT EXISTS idx_frames_timestamp ON key_frames(timestamp)');
+    this.db.run("CREATE INDEX IF NOT EXISTS idx_frames_timestamp ON key_frames(timestamp)");
 
     // 创建章节表
     this.db.run(`
@@ -107,7 +107,7 @@ export class SQLiteDatabase {
     status: string;
     error_message: string | null;
   }): void {
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
 
     this.db.run(
       `INSERT INTO jobs (id, source_url, file_name, duration, width, height, created_at, status, error_message)
@@ -122,14 +122,14 @@ export class SQLiteDatabase {
         job.created_at,
         job.status,
         job.error_message,
-      ]
+      ],
     );
   }
 
   getJob(jobId: string): any {
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
 
-    const stmt = this.db.prepare('SELECT * FROM jobs WHERE id = ?');
+    const stmt = this.db.prepare("SELECT * FROM jobs WHERE id = ?");
     const result = stmt.get(jobId);
     stmt.free();
 
@@ -137,9 +137,9 @@ export class SQLiteDatabase {
   }
 
   updateJobStatus(jobId: string, status: string): void {
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
 
-    this.db.run('UPDATE jobs SET status = ? WHERE id = ?', [status, jobId]);
+    this.db.run("UPDATE jobs SET status = ? WHERE id = ?", [status, jobId]);
   }
 
   // Segment 操作
@@ -151,7 +151,7 @@ export class SQLiteDatabase {
     text: string;
     confidence: number;
   }): void {
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
 
     this.db.run(
       `INSERT INTO transcript_segments (id, job_id, start_time, end_time, text, confidence, created_at)
@@ -164,14 +164,16 @@ export class SQLiteDatabase {
         segment.text,
         segment.confidence,
         Date.now(),
-      ]
+      ],
     );
   }
 
   getSegments(jobId: string): any[] {
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
 
-    const stmt = this.db.prepare('SELECT * FROM transcript_segments WHERE job_id = ? ORDER BY start_time');
+    const stmt = this.db.prepare(
+      "SELECT * FROM transcript_segments WHERE job_id = ? ORDER BY start_time",
+    );
     const results: any[] = [];
     while (stmt.step()) {
       const row = stmt.getAsObject();
@@ -190,26 +192,19 @@ export class SQLiteDatabase {
     image_data: Uint8Array;
     ocr_text: string | null;
   }): void {
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
 
     this.db.run(
       `INSERT INTO key_frames (id, job_id, timestamp, image_data, ocr_text, created_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        frame.id,
-        frame.job_id,
-        frame.timestamp,
-        frame.image_data,
-        frame.ocr_text,
-        Date.now(),
-      ]
+      [frame.id, frame.job_id, frame.timestamp, frame.image_data, frame.ocr_text, Date.now()],
     );
   }
 
   getFrames(jobId: string): any[] {
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
 
-    const stmt = this.db.prepare('SELECT * FROM key_frames WHERE job_id = ? ORDER BY timestamp');
+    const stmt = this.db.prepare("SELECT * FROM key_frames WHERE job_id = ? ORDER BY timestamp");
     const results: any[] = [];
     while (stmt.step()) {
       const row = stmt.getAsObject();
@@ -229,7 +224,7 @@ export class SQLiteDatabase {
     end_time: number;
     summary: string;
   }): void {
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
 
     this.db.run(
       `INSERT INTO chapters (id, job_id, title, start_time, end_time, summary, created_at)
@@ -242,14 +237,14 @@ export class SQLiteDatabase {
         chapter.end_time,
         chapter.summary,
         Date.now(),
-      ]
+      ],
     );
   }
 
   getChapters(jobId: string): any[] {
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
 
-    const stmt = this.db.prepare('SELECT * FROM chapters WHERE job_id = ? ORDER BY start_time');
+    const stmt = this.db.prepare("SELECT * FROM chapters WHERE job_id = ? ORDER BY start_time");
     const results: any[] = [];
     while (stmt.step()) {
       const row = stmt.getAsObject();
@@ -262,23 +257,23 @@ export class SQLiteDatabase {
 
   // 清理操作
   clearJob(jobId: string): void {
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
 
-    this.db.run('DELETE FROM key_frames WHERE job_id = ?', [jobId]);
-    this.db.run('DELETE FROM transcript_segments WHERE job_id = ?', [jobId]);
-    this.db.run('DELETE FROM chapters WHERE job_id = ?', [jobId]);
-    this.db.run('DELETE FROM jobs WHERE id = ?', [jobId]);
+    this.db.run("DELETE FROM key_frames WHERE job_id = ?", [jobId]);
+    this.db.run("DELETE FROM transcript_segments WHERE job_id = ?", [jobId]);
+    this.db.run("DELETE FROM chapters WHERE job_id = ?", [jobId]);
+    this.db.run("DELETE FROM jobs WHERE id = ?", [jobId]);
   }
 
   // 导出数据库
   export(): Uint8Array {
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
     return this.db.export();
   }
 
   // 导入数据库
   import(data: Uint8Array): void {
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
     this.db = new this.SQL.Database(data);
     this.isInitialized = true;
   }
@@ -315,10 +310,10 @@ export function closeSQLiteDatabase() {
 export async function exportDatabaseToFile(db: SQLiteDatabase, filename: string): Promise<void> {
   const data = db.export();
   // @ts-ignore - Uint8Array is valid for Blob
-  const blob = new Blob([data], { type: 'application/x-sqlite3' });
+  const blob = new Blob([data], { type: "application/x-sqlite3" });
   const url = URL.createObjectURL(blob);
 
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   a.click();

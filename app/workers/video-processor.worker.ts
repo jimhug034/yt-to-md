@@ -3,10 +3,10 @@
  * 处理视频帧提取任务
  */
 
-import type { KeyFrame } from '../lib/wasm';
+import type { KeyFrame } from "../lib/wasm";
 
 export interface VideoProcessorMessage {
-  type: 'extractFrames' | 'detectScenes' | 'processVideo';
+  type: "extractFrames" | "detectScenes" | "processVideo";
   videoUrl?: string;
   duration?: number;
   interval?: number;
@@ -14,7 +14,7 @@ export interface VideoProcessorMessage {
 }
 
 export interface VideoProcessorResponse {
-  type: 'progress' | 'frames' | 'scenes' | 'complete' | 'error';
+  type: "progress" | "frames" | "scenes" | "complete" | "error";
   progress?: number;
   frames?: KeyFrame[];
   scenes?: number[];
@@ -26,23 +26,23 @@ self.onmessage = async (e: MessageEvent<VideoProcessorMessage>) => {
 
   try {
     switch (message.type) {
-      case 'extractFrames': {
+      case "extractFrames": {
         await extractFrames(message);
         break;
       }
-      case 'detectScenes': {
+      case "detectScenes": {
         await detectScenes(message);
         break;
       }
       default:
         self.postMessage({
-          type: 'error',
+          type: "error",
           error: `Unknown message type: ${message.type}`,
         } as VideoProcessorResponse);
     }
   } catch (error) {
     self.postMessage({
-      type: 'error',
+      type: "error",
       error: error instanceof Error ? error.message : String(error),
     } as VideoProcessorResponse);
   }
@@ -52,7 +52,7 @@ async function extractFrames(message: VideoProcessorMessage) {
   const { videoUrl, duration, interval = 5, quality = 0.8 } = message;
 
   if (!videoUrl || !duration) {
-    throw new Error('Missing videoUrl or duration');
+    throw new Error("Missing videoUrl or duration");
   }
 
   const frames: KeyFrame[] = [];
@@ -64,7 +64,7 @@ async function extractFrames(message: VideoProcessorMessage) {
 
     // 通知主线程提取该时间点的帧
     self.postMessage({
-      type: 'progress',
+      type: "progress",
       progress: ((i + 1) / frameCount) * 100,
     } as VideoProcessorResponse);
 
@@ -73,7 +73,7 @@ async function extractFrames(message: VideoProcessorMessage) {
   }
 
   self.postMessage({
-    type: 'complete',
+    type: "complete",
     frames,
   } as VideoProcessorResponse);
 }
@@ -82,7 +82,7 @@ async function detectScenes(message: VideoProcessorMessage) {
   const { videoUrl, duration } = message;
 
   if (!videoUrl || !duration) {
-    throw new Error('Missing videoUrl or duration');
+    throw new Error("Missing videoUrl or duration");
   }
 
   // 场景变化检测
@@ -93,14 +93,13 @@ async function detectScenes(message: VideoProcessorMessage) {
   for (let i = 0; i < sampleCount; i++) {
     // 场景变化检测逻辑需要主线程配合
     self.postMessage({
-      type: 'progress',
+      type: "progress",
       progress: ((i + 1) / sampleCount) * 100,
     } as VideoProcessorResponse);
   }
 
   self.postMessage({
-    type: 'scenes',
+    type: "scenes",
     scenes,
   } as VideoProcessorResponse);
 }
-

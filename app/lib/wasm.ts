@@ -21,7 +21,11 @@ interface WasmLoader {
   Summarizer: new (max_sentences: number) => any;
   Chapterizer: new (min_duration: number, silence_threshold: number) => any;
   TextProcessor: any;
-  MarkdownGenerator: new (include_timestamps: boolean, include_images: boolean, include_chapters: boolean) => any;
+  MarkdownGenerator: new (
+    include_timestamps: boolean,
+    include_images: boolean,
+    include_chapters: boolean,
+  ) => any;
   PptxGenerator: new (title: string, author: string) => any;
 }
 
@@ -180,7 +184,7 @@ export function getWASMFeatures(): WASMFeatures {
 // New Video Processing Types
 // ============================================
 
-export type JobStatus = 'Pending' | 'Processing' | 'Completed' | 'Failed';
+export type JobStatus = "Pending" | "Processing" | "Completed" | "Failed";
 
 export interface VideoJob {
   id: string;
@@ -239,7 +243,10 @@ export interface ProcessingOptions {
 /**
  * Resample audio to 16kHz using WASM
  */
-export async function resampleAudioWASM(audioData: Float32Array, sampleRate: number): Promise<Float32Array> {
+export async function resampleAudioWASM(
+  audioData: Float32Array,
+  sampleRate: number,
+): Promise<Float32Array> {
   await ensureInitialized();
   const loader = await getWasmModule();
   const processor = new loader.AudioProcessor(sampleRate, 1);
@@ -251,10 +258,13 @@ export async function resampleAudioWASM(audioData: Float32Array, sampleRate: num
 /**
  * Parse Whisper ASR result using WASM
  */
-export async function parseWhisperResultWASM(resultJson: string, jobId: string): Promise<TranscriptSegment[]> {
+export async function parseWhisperResultWASM(
+  resultJson: string,
+  jobId: string,
+): Promise<TranscriptSegment[]> {
   await ensureInitialized();
   const loader = await getWasmModule();
-  const recognizer = new loader.SpeechRecognizer('en');
+  const recognizer = new loader.SpeechRecognizer("en");
   const result = recognizer.parse_whisper_result(resultJson, jobId);
   return JSON.parse(result);
 }
@@ -262,10 +272,13 @@ export async function parseWhisperResultWASM(resultJson: string, jobId: string):
 /**
  * Merge short transcript segments using WASM
  */
-export async function mergeShortSegmentsWASM(segmentsJson: string, minDuration: number): Promise<TranscriptSegment[]> {
+export async function mergeShortSegmentsWASM(
+  segmentsJson: string,
+  minDuration: number,
+): Promise<TranscriptSegment[]> {
   await ensureInitialized();
   const loader = await getWasmModule();
-  const recognizer = new loader.SpeechRecognizer('en');
+  const recognizer = new loader.SpeechRecognizer("en");
   const result = recognizer.merge_short_segments(segmentsJson, minDuration);
   return JSON.parse(result);
 }
@@ -273,7 +286,10 @@ export async function mergeShortSegmentsWASM(segmentsJson: string, minDuration: 
 /**
  * Detect scene changes using WASM
  */
-export async function detectSceneChangesWASM(motionScoresJson: string, threshold: number): Promise<number[]> {
+export async function detectSceneChangesWASM(
+  motionScoresJson: string,
+  threshold: number,
+): Promise<number[]> {
   await ensureInitialized();
   const loader = await getWasmModule();
   const extractor = new loader.FrameExtractor(5);
@@ -287,7 +303,7 @@ export async function detectSceneChangesWASM(motionScoresJson: string, threshold
 export async function cleanOcrTextWASM(text: string): Promise<string> {
   await ensureInitialized();
   const loader = await getWasmModule();
-  const ocr = new loader.OcrProcessor('en');
+  const ocr = new loader.OcrProcessor("en");
   return ocr.clean_ocr_text(text);
 }
 
@@ -309,7 +325,7 @@ export async function splitChaptersWASM(
   totalDuration: number,
   jobId: string,
   minDuration: number = 60,
-  silenceThreshold: number = 0.3
+  silenceThreshold: number = 0.3,
 ): Promise<Chapter[]> {
   await ensureInitialized();
   const loader = await getWasmModule();
@@ -324,7 +340,7 @@ export async function splitChaptersWASM(
 export async function generateChapterSummaryWASM(
   segmentsJson: string,
   startTime: number,
-  endTime: number
+  endTime: number,
 ): Promise<string> {
   await ensureInitialized();
   const loader = await getWasmModule();
@@ -363,14 +379,14 @@ export async function generateMarkdownWASM(
     include_timestamps?: boolean;
     include_images?: boolean;
     include_chapters?: boolean;
-  } = {}
+  } = {},
 ): Promise<string> {
   await ensureInitialized();
   const loader = await getWasmModule();
   const generator = new loader.MarkdownGenerator(
     options.include_timestamps ?? false,
     options.include_images ?? true,
-    options.include_chapters ?? true
+    options.include_chapters ?? true,
   );
   return generator.generate(jobJson, segmentsJson, chaptersJson, framesJson);
 }
@@ -384,7 +400,7 @@ export async function generatePptxSlidesWASM(
   chaptersJson: string,
   framesJson: string,
   title: string,
-  author: string
+  author: string,
 ): Promise<string> {
   await ensureInitialized();
   const loader = await getWasmModule();

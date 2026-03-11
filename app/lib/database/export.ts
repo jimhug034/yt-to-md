@@ -3,13 +3,13 @@
  * Provides functionality to export and import database data
  */
 
-import type { VideoDatabase } from './indexeddb';
-import type { JobExportData, ExportOptions } from '../models/types';
+import type { VideoDatabase } from "./indexeddb";
+import type { JobExportData, ExportOptions } from "../models/types";
 
 /**
  * Export format types
  */
-export type ExportFormat = 'json' | 'csv' | 'md';
+export type ExportFormat = "json" | "csv" | "md";
 
 /**
  * Export result
@@ -37,21 +37,21 @@ export interface ImportResult {
 export async function exportToFile(
   db: VideoDatabase,
   jobIds?: string[],
-  options: ExportOptions = {}
+  options: ExportOptions = {},
 ): Promise<ExportResult> {
-  const format = (options.format || 'json') as ExportFormat;
+  const format = (options.format || "json") as ExportFormat;
   const data = await db.exportDatabase(jobIds);
 
   let result: ExportResult;
 
   switch (format) {
-    case 'json':
+    case "json":
       result = await exportAsJSON(data, options);
       break;
-    case 'csv':
+    case "csv":
       result = await exportAsCSV(data, options);
       break;
-    case 'md':
+    case "md":
       result = await exportAsMarkdown(data, options);
       break;
     default:
@@ -66,18 +66,18 @@ export async function exportToFile(
  */
 async function exportAsJSON(data: JobExportData[], options: ExportOptions): Promise<ExportResult> {
   const exportData = {
-    version: '1.0.0',
+    version: "1.0.0",
     exportedAt: new Date().toISOString(),
     jobs: data,
   };
 
   const jsonString = JSON.stringify(exportData, null, 2);
-  const blob = new Blob([jsonString], { type: 'application/json' });
+  const blob = new Blob([jsonString], { type: "application/json" });
   const filename = `yt-subtitle-export-${Date.now()}.json`;
 
   return {
     success: true,
-    format: 'json',
+    format: "json",
     size: blob.size,
     filename,
     data: blob,
@@ -99,41 +99,41 @@ async function exportAsCSV(data: JobExportData[], options: ExportOptions): Promi
     lines.push(`Status,${job.status}`);
     lines.push(`Duration,${job.duration}`);
     lines.push(`Created,${new Date(job.createdAt).toISOString()}`);
-    lines.push('');
+    lines.push("");
 
     // Segments
     if (options.includeSegments !== false && segments.length > 0) {
-      lines.push('## Segments');
-      lines.push('Start Time,End Time,Text,Confidence');
+      lines.push("## Segments");
+      lines.push("Start Time,End Time,Text,Confidence");
       for (const segment of segments) {
         const text = segment.text.replace(/"/g, '""'); // Escape quotes
         lines.push(`${segment.startTime},${segment.endTime},"${text}",${segment.confidence}`);
       }
-      lines.push('');
+      lines.push("");
     }
 
     // Chapters
     if (options.includeChapters !== false && chapters.length > 0) {
-      lines.push('## Chapters');
-      lines.push('Title,Start Time,End Time,Summary');
+      lines.push("## Chapters");
+      lines.push("Title,Start Time,End Time,Summary");
       for (const chapter of chapters) {
-        const summary = (chapter.summary || '').replace(/"/g, '""');
+        const summary = (chapter.summary || "").replace(/"/g, '""');
         lines.push(`"${chapter.title}",${chapter.startTime},${chapter.endTime},"${summary}"`);
       }
-      lines.push('');
+      lines.push("");
     }
 
-    lines.push('---');
-    lines.push('');
+    lines.push("---");
+    lines.push("");
   }
 
-  const csvString = lines.join('\n');
-  const blob = new Blob([csvString], { type: 'text/csv' });
+  const csvString = lines.join("\n");
+  const blob = new Blob([csvString], { type: "text/csv" });
   const filename = `yt-subtitle-export-${Date.now()}.csv`;
 
   return {
     success: true,
-    format: 'csv',
+    format: "csv",
     size: blob.size,
     filename,
     data: blob,
@@ -143,93 +143,99 @@ async function exportAsCSV(data: JobExportData[], options: ExportOptions): Promi
 /**
  * Export as Markdown
  */
-async function exportAsMarkdown(data: JobExportData[], options: ExportOptions): Promise<ExportResult> {
+async function exportAsMarkdown(
+  data: JobExportData[],
+  options: ExportOptions,
+): Promise<ExportResult> {
   const lines: string[] = [];
 
-  lines.push('# YouTube Subtitle Export');
+  lines.push("# YouTube Subtitle Export");
   lines.push(`Generated: ${new Date().toISOString()}`);
-  lines.push('');
+  lines.push("");
 
   for (const jobData of data) {
     const { job, segments, frames, chapters } = jobData;
 
     lines.push(`## ${job.fileName}`);
-    lines.push('');
+    lines.push("");
 
     // Metadata
-    lines.push('### Metadata');
+    lines.push("### Metadata");
     lines.push(`- **ID**: ${job.id}`);
     lines.push(`- **Duration**: ${formatDuration(job.duration)}`);
     lines.push(`- **Resolution**: ${job.width}x${job.height}`);
     lines.push(`- **Status**: ${job.status}`);
     lines.push(`- **Created**: ${new Date(job.createdAt).toISOString()}`);
-    lines.push('');
+    lines.push("");
 
     // Chapters
     if (options.includeChapters !== false && chapters.length > 0) {
-      lines.push('### Chapters');
-      lines.push('');
+      lines.push("### Chapters");
+      lines.push("");
       for (const chapter of chapters) {
         lines.push(`#### ${chapter.title}`);
-        lines.push(`**Time**: ${formatTimestamp(chapter.startTime)} - ${formatTimestamp(chapter.endTime)}`);
+        lines.push(
+          `**Time**: ${formatTimestamp(chapter.startTime)} - ${formatTimestamp(chapter.endTime)}`,
+        );
         if (chapter.summary) {
           lines.push(`**Summary**: ${chapter.summary}`);
         }
-        lines.push('');
+        lines.push("");
       }
     }
 
     // Transcript
     if (options.includeSegments !== false && segments.length > 0) {
-      lines.push('### Transcript');
-      lines.push('');
+      lines.push("### Transcript");
+      lines.push("");
 
       // Group segments by chapter if available
       if (chapters.length > 0) {
         for (const chapter of chapters) {
           lines.push(`#### ${chapter.title}`);
-          lines.push('');
+          lines.push("");
           const chapterSegments = segments.filter(
-            (s) => s.startTime >= chapter.startTime && s.endTime <= chapter.endTime
+            (s) => s.startTime >= chapter.startTime && s.endTime <= chapter.endTime,
           );
           for (const segment of chapterSegments) {
             lines.push(`**[${formatTimestamp(segment.startTime)}]** ${segment.text}`);
           }
-          lines.push('');
+          lines.push("");
         }
       } else {
         // No chapters, just list all segments
         for (const segment of segments) {
           lines.push(`**[${formatTimestamp(segment.startTime)}]** ${segment.text}`);
         }
-        lines.push('');
+        lines.push("");
       }
     }
 
     // Frames (key frames with OCR)
     if (options.includeFrames !== false && frames.length > 0) {
-      lines.push('### Key Frames');
-      lines.push('');
-      for (const frame of frames.slice(0, 20)) { // Limit to 20 frames
+      lines.push("### Key Frames");
+      lines.push("");
+      for (const frame of frames.slice(0, 20)) {
+        // Limit to 20 frames
         lines.push(`#### Frame at ${formatTimestamp(frame.timestamp)}`);
         if (frame.ocrText) {
           lines.push(`**OCR**: ${frame.ocrText}`);
         }
-        lines.push('');
+        lines.push("");
       }
     }
 
-    lines.push('---');
-    lines.push('');
+    lines.push("---");
+    lines.push("");
   }
 
-  const markdown = lines.join('\n');
-  const blob = new Blob([markdown], { type: 'text/markdown' });
+  const markdown = lines.join("\n");
+  const blob = new Blob([markdown], { type: "text/markdown" });
   const filename = `yt-subtitle-export-${Date.now()}.md`;
 
   return {
     success: true,
-    format: 'md',
+    format: "md",
     size: blob.size,
     filename,
     data: blob,
@@ -239,10 +245,7 @@ async function exportAsMarkdown(data: JobExportData[], options: ExportOptions): 
 /**
  * Import data from file
  */
-export async function importFromFile(
-  db: VideoDatabase,
-  file: File
-): Promise<ImportResult> {
+export async function importFromFile(db: VideoDatabase, file: File): Promise<ImportResult> {
   const errors: string[] = [];
   let jobsImported = 0;
 
@@ -252,7 +255,7 @@ export async function importFromFile(
 
     // Validate data structure
     if (!data.jobs && !Array.isArray(data)) {
-      throw new Error('Invalid file format: missing jobs array');
+      throw new Error("Invalid file format: missing jobs array");
     }
 
     const jobsData: JobExportData[] = data.jobs || data;
@@ -261,12 +264,12 @@ export async function importFromFile(
       try {
         // Validate job data
         if (!jobData.job) {
-          errors.push('Skipping invalid job: missing job data');
+          errors.push("Skipping invalid job: missing job data");
           continue;
         }
 
         // Import job data
-        await db.transaction('rw', [db.jobs, db.segments, db.frames, db.chapters], async () => {
+        await db.transaction("rw", [db.jobs, db.segments, db.frames, db.chapters], async () => {
           // Generate new ID to avoid conflicts
           const newJobId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
 
@@ -309,7 +312,7 @@ export async function importFromFile(
           jobsImported++;
         });
       } catch (error) {
-        errors.push(`Failed to import job ${jobData.job?.fileName || 'unknown'}: ${error}`);
+        errors.push(`Failed to import job ${jobData.job?.fileName || "unknown"}: ${error}`);
       }
     }
   } catch (error) {
@@ -332,7 +335,7 @@ export async function importFromFile(
  */
 export function downloadExport(result: ExportResult): void {
   const url = URL.createObjectURL(result.data as Blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = result.filename;
   document.body.appendChild(a);
@@ -348,7 +351,7 @@ export async function exportAsSRT(db: VideoDatabase, jobId: string): Promise<Exp
   const { job, segments } = await db.getJobData(jobId);
 
   if (!job) {
-    throw new Error('Job not found');
+    throw new Error("Job not found");
   }
 
   const srtLines: string[] = [];
@@ -357,16 +360,16 @@ export async function exportAsSRT(db: VideoDatabase, jobId: string): Promise<Exp
     srtLines.push(`${index + 1}`);
     srtLines.push(`${formatSRTTime(segment.startTime)} --> ${formatSRTTime(segment.endTime)}`);
     srtLines.push(segment.text);
-    srtLines.push('');
+    srtLines.push("");
   });
 
-  const srtContent = srtLines.join('\n');
-  const blob = new Blob([srtContent], { type: 'text/plain' });
+  const srtContent = srtLines.join("\n");
+  const blob = new Blob([srtContent], { type: "text/plain" });
   const filename = `${job.fileName}.srt`;
 
   return {
     success: true,
-    format: 'json', // SRT is treated as text
+    format: "json", // SRT is treated as text
     size: blob.size,
     filename,
     data: blob,
@@ -380,27 +383,24 @@ export async function exportAsVTT(db: VideoDatabase, jobId: string): Promise<Exp
   const { job, segments } = await db.getJobData(jobId);
 
   if (!job) {
-    throw new Error('Job not found');
+    throw new Error("Job not found");
   }
 
-  const vttLines: string[] = [
-    'WEBVTT',
-    '',
-  ];
+  const vttLines: string[] = ["WEBVTT", ""];
 
   segments.forEach((segment) => {
     vttLines.push(`${formatVTTTime(segment.startTime)} --> ${formatVTTTime(segment.endTime)}`);
     vttLines.push(segment.text);
-    vttLines.push('');
+    vttLines.push("");
   });
 
-  const vttContent = vttLines.join('\n');
-  const blob = new Blob([vttContent], { type: 'text/vtt' });
+  const vttContent = vttLines.join("\n");
+  const blob = new Blob([vttContent], { type: "text/vtt" });
   const filename = `${job.fileName}.vtt`;
 
   return {
     success: true,
-    format: 'json', // VTT is treated as text
+    format: "json", // VTT is treated as text
     size: blob.size,
     filename,
     data: blob,
@@ -414,27 +414,27 @@ export async function exportAsTranscript(db: VideoDatabase, jobId: string): Prom
   const { job, segments } = await db.getJobData(jobId);
 
   if (!job) {
-    throw new Error('Job not found');
+    throw new Error("Job not found");
   }
 
   const lines: string[] = [
     `# Transcript for ${job.fileName}`,
     `# Duration: ${formatDuration(job.duration)}`,
     `# Generated: ${new Date().toISOString()}`,
-    '',
+    "",
   ];
 
   segments.forEach((segment) => {
     lines.push(`[${formatTimestamp(segment.startTime)}] ${segment.text}`);
   });
 
-  const content = lines.join('\n');
-  const blob = new Blob([content], { type: 'text/plain' });
+  const content = lines.join("\n");
+  const blob = new Blob([content], { type: "text/plain" });
   const filename = `${job.fileName}.txt`;
 
   return {
     success: true,
-    format: 'json', // Text is treated as text
+    format: "json", // Text is treated as text
     size: blob.size,
     filename,
     data: blob,
@@ -471,7 +471,7 @@ function formatTimestamp(seconds: number): string {
   const secs = Math.floor(seconds % 60);
   const ms = Math.floor((seconds % 1) * 1000);
 
-  const pad = (n: number, size: number = 2) => n.toString().padStart(size, '0');
+  const pad = (n: number, size: number = 2) => n.toString().padStart(size, "0");
 
   return `${pad(hours)}:${pad(minutes)}:${pad(secs)}.${pad(ms, 3)}`;
 }
@@ -485,7 +485,7 @@ function formatSRTTime(seconds: number): string {
   const secs = Math.floor(seconds % 60);
   const ms = Math.floor((seconds % 1) * 1000);
 
-  const pad = (n: number, size: number = 2) => n.toString().padStart(size, '0');
+  const pad = (n: number, size: number = 2) => n.toString().padStart(size, "0");
 
   return `${pad(hours)}:${pad(minutes)}:${pad(secs)},${pad(ms, 3)}`;
 }
@@ -499,7 +499,7 @@ function formatVTTTime(seconds: number): string {
   const secs = Math.floor(seconds % 60);
   const ms = Math.floor((seconds % 1) * 1000);
 
-  const pad = (n: number, size: number = 2) => n.toString().padStart(size, '0');
+  const pad = (n: number, size: number = 2) => n.toString().padStart(size, "0");
 
   return `${pad(hours)}:${pad(minutes)}:${pad(secs)}.${pad(ms, 3)}`;
 }
@@ -510,13 +510,13 @@ function formatVTTTime(seconds: number): string {
 export async function createBackup(db: VideoDatabase): Promise<Blob> {
   const data = await db.exportDatabase();
   const backupData = {
-    version: '1.0.0',
+    version: "1.0.0",
     backupDate: new Date().toISOString(),
     database: data,
   };
 
   const jsonString = JSON.stringify(backupData);
-  return new Blob([jsonString], { type: 'application/json' });
+  return new Blob([jsonString], { type: "application/json" });
 }
 
 /**
@@ -530,7 +530,7 @@ export async function restoreBackup(db: VideoDatabase, file: File): Promise<Impo
     return {
       success: false,
       jobsImported: 0,
-      errors: ['Invalid backup file format'],
+      errors: ["Invalid backup file format"],
     };
   }
 

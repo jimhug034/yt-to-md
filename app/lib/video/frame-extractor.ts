@@ -2,7 +2,7 @@
  * Frame Extractor - 从视频中提取关键帧
  */
 
-import type { KeyFrame } from '../wasm';
+import type { KeyFrame } from "../wasm";
 
 export interface FrameExtractionOptions {
   interval?: number; // 提取间隔（秒）
@@ -28,31 +28,25 @@ export class FrameExtractor {
   async initialize(video: HTMLVideoElement): Promise<void> {
     this.videoElement = video;
 
-    this.canvas = document.createElement('canvas');
+    this.canvas = document.createElement("canvas");
     this.canvas.width = video.videoWidth;
     this.canvas.height = video.videoHeight;
 
-    this.ctx = this.canvas.getContext('2d');
+    this.ctx = this.canvas.getContext("2d");
     if (!this.ctx) {
-      throw new Error('Failed to get canvas context');
+      throw new Error("Failed to get canvas context");
     }
   }
 
   /**
    * 提取所有关键帧
    */
-  async extractAllFrames(
-    options: FrameExtractionOptions = {}
-  ): Promise<ExtractedFrame[]> {
+  async extractAllFrames(options: FrameExtractionOptions = {}): Promise<ExtractedFrame[]> {
     if (!this.videoElement || !this.canvas || !this.ctx) {
-      throw new Error('FrameExtractor not initialized');
+      throw new Error("FrameExtractor not initialized");
     }
 
-    const {
-      interval = 5,
-      quality = 0.8,
-      maxWidth = 1920,
-    } = options;
+    const { interval = 5, quality = 0.8, maxWidth = 1920 } = options;
 
     const frames: ExtractedFrame[] = [];
     const duration = this.videoElement.duration;
@@ -85,10 +79,7 @@ export class FrameExtractor {
   /**
    * 提取指定时间的帧
    */
-  async extractFrameAt(
-    time: number,
-    quality = 0.8
-  ): Promise<ExtractedFrame | null> {
+  async extractFrameAt(time: number, quality = 0.8): Promise<ExtractedFrame | null> {
     if (!this.videoElement || !this.canvas || !this.ctx) {
       return null;
     }
@@ -109,11 +100,7 @@ export class FrameExtractor {
 
     // 转换为 Blob
     const blob = await new Promise<Blob | null>((resolve) => {
-      this.canvas!.toBlob(
-        (b) => resolve(b),
-        'image/jpeg',
-        quality
-      );
+      this.canvas!.toBlob((b) => resolve(b), "image/jpeg", quality);
     });
 
     if (!blob) return null;
@@ -129,9 +116,7 @@ export class FrameExtractor {
   /**
    * 检测场景变化
    */
-  async detectSceneChanges(
-    threshold = 0.3
-  ): Promise<number[]> {
+  async detectSceneChanges(threshold = 0.3): Promise<number[]> {
     if (!this.videoElement || !this.canvas || !this.ctx) {
       return [];
     }
@@ -177,20 +162,17 @@ export class FrameExtractor {
   private waitForSeek(video: HTMLVideoElement): Promise<void> {
     return new Promise((resolve) => {
       const handler = () => {
-        video.removeEventListener('seeked', handler);
+        video.removeEventListener("seeked", handler);
         resolve();
       };
-      video.addEventListener('seeked', handler);
+      video.addEventListener("seeked", handler);
     });
   }
 
   /**
    * 将 ExtractedFrame 转换为 KeyFrame 格式
    */
-  async toKeyFrame(
-    extracted: ExtractedFrame,
-    jobId: string
-  ): Promise<KeyFrame> {
+  async toKeyFrame(extracted: ExtractedFrame, jobId: string): Promise<KeyFrame> {
     const arrayBuffer = await extracted.blob.arrayBuffer();
     const imageData = new Uint8Array(arrayBuffer);
 

@@ -6,14 +6,14 @@
  * 支持批量处理和多帧 OCR。
  */
 
-import type { OcrResult, OcrBox } from '../lib/models/paddleocr';
+import type { OcrResult, OcrBox } from "../lib/models/paddleocr";
 
 // ============================================
 // 消息类型定义
 // ============================================
 
 export interface OcrWorkerMessage {
-  type: 'recognize' | 'recognizeBatch' | 'loadModel' | 'abort' | 'getStatus';
+  type: "recognize" | "recognizeBatch" | "loadModel" | "abort" | "getStatus";
   images?: Array<OcrImageInput>;
   imageUrl?: string;
   options?: OcrWorkerOptions;
@@ -28,7 +28,7 @@ export interface OcrImageInput {
 }
 
 export interface OcrWorkerOptions {
-  language?: 'ch' | 'en' | 'korean' | 'japan';
+  language?: "ch" | "en" | "korean" | "japan";
   detector?: string;
   recognizer?: string;
   mergeDuplicates?: boolean;
@@ -37,9 +37,9 @@ export interface OcrWorkerOptions {
 }
 
 export interface OcrWorkerResponse {
-  type: 'progress' | 'result' | 'batchResult' | 'complete' | 'error' | 'status' | 'aborted';
+  type: "progress" | "result" | "batchResult" | "complete" | "error" | "status" | "aborted";
   progress?: number;
-  stage?: 'loadingModel' | 'processing' | 'complete';
+  stage?: "loadingModel" | "processing" | "complete";
   index?: number;
   result?: OcrFrameResult;
   results?: OcrFrameResult[];
@@ -92,23 +92,23 @@ self.onmessage = async (e: MessageEvent<OcrWorkerMessage>) => {
 
   try {
     switch (type) {
-      case 'loadModel':
+      case "loadModel":
         await loadModel(message.options, _id);
         break;
 
-      case 'recognize':
+      case "recognize":
         await recognize(message, _id);
         break;
 
-      case 'recognizeBatch':
+      case "recognizeBatch":
         await recognizeBatch(message, _id);
         break;
 
-      case 'abort':
+      case "abort":
         abort(_id);
         break;
 
-      case 'getStatus':
+      case "getStatus":
         sendStatus(_id);
         break;
 
@@ -116,10 +116,7 @@ self.onmessage = async (e: MessageEvent<OcrWorkerMessage>) => {
         sendError(`Unknown message type: ${(message as any).type}`, _id);
     }
   } catch (error) {
-    sendError(
-      error instanceof Error ? error.message : String(error),
-      _id
-    );
+    sendError(error instanceof Error ? error.message : String(error), _id);
   }
 };
 
@@ -137,17 +134,17 @@ async function loadModel(options?: OcrWorkerOptions, _id: number = 0): Promise<v
   }
 
   state.isProcessing = true;
-  sendProgress(0, 'loadingModel', undefined, _id);
+  sendProgress(0, "loadingModel", undefined, _id);
 
   try {
     // 动态导入 OCR 模型
-    const { getPaddleOCRModel } = await import('../lib/models/paddleocr');
+    const { getPaddleOCRModel } = await import("../lib/models/paddleocr");
     ocrModel = getPaddleOCRModel();
 
     // 设置进度回调
     ocrModel.onProgress((progress: number) => {
       if (!state.isAborted) {
-        sendProgress(progress, 'loadingModel', undefined, _id);
+        sendProgress(progress, "loadingModel", undefined, _id);
       }
     });
 
@@ -162,7 +159,7 @@ async function loadModel(options?: OcrWorkerOptions, _id: number = 0): Promise<v
     state.isModelLoaded = true;
     state.isProcessing = false;
 
-    sendProgress(100, 'loadingModel', undefined, _id);
+    sendProgress(100, "loadingModel", undefined, _id);
     sendStatus(_id);
   } catch (error) {
     state.isProcessing = false;
@@ -177,7 +174,7 @@ async function recognize(message: OcrWorkerMessage, _id: number = 0): Promise<vo
   const { images, imageUrl, options } = message;
 
   if (!images?.length && !imageUrl) {
-    throw new Error('No image data provided');
+    throw new Error("No image data provided");
   }
 
   // 重置中止状态
@@ -194,17 +191,13 @@ async function recognize(message: OcrWorkerMessage, _id: number = 0): Promise<vo
       }
     }
 
-    sendProgress(0, 'processing', undefined, _id);
+    sendProgress(0, "processing", undefined, _id);
 
     let imageSource: ImageData | string;
 
     if (images && images.length > 0) {
       const img = images[0];
-      imageSource = new ImageData(
-        new Uint8ClampedArray(img.imageData),
-        img.width,
-        img.height
-      );
+      imageSource = new ImageData(new Uint8ClampedArray(img.imageData), img.width, img.height);
     } else {
       imageSource = imageUrl!;
     }
@@ -234,7 +227,7 @@ async function recognize(message: OcrWorkerMessage, _id: number = 0): Promise<vo
 
     state.isProcessing = false;
 
-    sendProgress(100, 'processing', undefined, _id);
+    sendProgress(100, "processing", undefined, _id);
     sendComplete([result], _id);
   } catch (error) {
     state.isProcessing = false;
@@ -249,7 +242,7 @@ async function recognizeBatch(message: OcrWorkerMessage, _id: number = 0): Promi
   const { images, options } = message;
 
   if (!images || images.length === 0) {
-    throw new Error('No images provided');
+    throw new Error("No images provided");
   }
 
   // 重置中止状态
@@ -276,19 +269,10 @@ async function recognizeBatch(message: OcrWorkerMessage, _id: number = 0): Promi
       }
 
       const img = images[i];
-      const imageData = new ImageData(
-        new Uint8ClampedArray(img.imageData),
-        img.width,
-        img.height
-      );
+      const imageData = new ImageData(new Uint8ClampedArray(img.imageData), img.width, img.height);
 
       // 发送进度
-      sendProgress(
-        (i / totalImages) * 100,
-        'processing',
-        i,
-        _id
-      );
+      sendProgress((i / totalImages) * 100, "processing", i, _id);
 
       // 执行 OCR
       const rawResult = await ocrModel.recognize(imageData);
@@ -311,12 +295,7 @@ async function recognizeBatch(message: OcrWorkerMessage, _id: number = 0): Promi
       results.push(result);
 
       // 发送中间结果
-      sendProgress(
-        ((i + 1) / totalImages) * 100,
-        'processing',
-        i,
-        _id
-      );
+      sendProgress(((i + 1) / totalImages) * 100, "processing", i, _id);
     }
 
     // 合并重复文本（如果启用）
@@ -327,7 +306,7 @@ async function recognizeBatch(message: OcrWorkerMessage, _id: number = 0): Promi
 
     state.isProcessing = false;
 
-    sendProgress(100, 'processing', undefined, _id);
+    sendProgress(100, "processing", undefined, _id);
     sendComplete(finalResults, _id);
   } catch (error) {
     state.isProcessing = false;
@@ -349,7 +328,7 @@ function abort(_id: number = 0): void {
  */
 async function cleanOcrText(text: string): Promise<string> {
   try {
-    const { cleanOcrTextWASM } = await import('../lib/wasm');
+    const { cleanOcrTextWASM } = await import("../lib/wasm");
     return await cleanOcrTextWASM(text);
   } catch {
     // 如果 WASM 不可用，返回原始文本
@@ -373,11 +352,11 @@ async function mergeDuplicateTexts(results: OcrFrameResult[]): Promise<OcrFrameR
   const uniqueTexts = new Set<string>();
   const seenHashes = new Set<string>();
 
-  return results.filter(result => {
+  return results.filter((result) => {
     if (!result.text) return true;
 
     // 创建文本的简单哈希
-    const normalized = result.text.toLowerCase().replace(/\s+/g, '');
+    const normalized = result.text.toLowerCase().replace(/\s+/g, "");
     const hash = `${normalized}_${Math.floor(result.confidence * 10)}`;
 
     if (seenHashes.has(hash)) {
@@ -393,9 +372,14 @@ async function mergeDuplicateTexts(results: OcrFrameResult[]): Promise<OcrFrameR
 /**
  * 发送进度更新
  */
-function sendProgress(progress: number, stage: 'loadingModel' | 'processing', index?: number, _id: number = 0): void {
+function sendProgress(
+  progress: number,
+  stage: "loadingModel" | "processing",
+  index?: number,
+  _id: number = 0,
+): void {
   const response: OcrWorkerResponse = {
-    type: 'progress',
+    type: "progress",
     progress,
     stage,
     index,
@@ -409,7 +393,7 @@ function sendProgress(progress: number, stage: 'loadingModel' | 'processing', in
  */
 function sendComplete(results: OcrFrameResult[], _id: number = 0): void {
   const response: OcrWorkerResponse = {
-    type: 'complete',
+    type: "complete",
     results,
     _id,
   };
@@ -421,7 +405,7 @@ function sendComplete(results: OcrFrameResult[], _id: number = 0): void {
  */
 function sendStatus(_id: number = 0): void {
   const response: OcrWorkerResponse = {
-    type: 'status',
+    type: "status",
     isModelLoaded: state.isModelLoaded,
     isProcessing: state.isProcessing,
     _id,
@@ -434,7 +418,7 @@ function sendStatus(_id: number = 0): void {
  */
 function sendAborted(_id: number = 0): void {
   const response: OcrWorkerResponse = {
-    type: 'aborted',
+    type: "aborted",
     _id,
   };
   self.postMessage(response);
@@ -445,7 +429,7 @@ function sendAborted(_id: number = 0): void {
  */
 function sendError(error: string, _id: number = 0): void {
   const response: OcrWorkerResponse = {
-    type: 'error',
+    type: "error",
     error,
     _id,
   };

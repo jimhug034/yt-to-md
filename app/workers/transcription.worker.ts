@@ -6,15 +6,15 @@
  * 避免阻塞主线程 UI。
  */
 
-import type { WhisperResult, WhisperOptions } from '../lib/models/whisper';
-import type { TranscriptSegment } from '../lib/wasm';
+import type { WhisperResult, WhisperOptions } from "../lib/models/whisper";
+import type { TranscriptSegment } from "../lib/wasm";
 
 // ============================================
 // 消息类型定义
 // ============================================
 
 export interface TranscriptionWorkerMessage {
-  type: 'transcribe' | 'loadModel' | 'abort' | 'getStatus';
+  type: "transcribe" | "loadModel" | "abort" | "getStatus";
   audioData?: Float32Array | Array<number>;
   audioBlob?: Blob;
   options?: TranscriptionOptions;
@@ -29,9 +29,9 @@ export interface TranscriptionOptions extends WhisperOptions {
 }
 
 export interface TranscriptionWorkerResponse {
-  type: 'progress' | 'result' | 'complete' | 'error' | 'status' | 'aborted';
+  type: "progress" | "result" | "complete" | "error" | "status" | "aborted";
   progress?: number;
-  stage?: 'loadingModel' | 'processing' | 'complete';
+  stage?: "loadingModel" | "processing" | "complete";
   result?: WhisperResult;
   segments?: TranscriptSegment[];
   text?: string;
@@ -71,19 +71,19 @@ self.onmessage = async (e: MessageEvent<TranscriptionWorkerMessage>) => {
 
   try {
     switch (message.type) {
-      case 'loadModel':
+      case "loadModel":
         await loadModel(message.options);
         break;
 
-      case 'transcribe':
+      case "transcribe":
         await transcribe(message);
         break;
 
-      case 'abort':
+      case "abort":
         abort();
         break;
 
-      case 'getStatus':
+      case "getStatus":
         sendStatus();
         break;
 
@@ -91,9 +91,7 @@ self.onmessage = async (e: MessageEvent<TranscriptionWorkerMessage>) => {
         sendError(`Unknown message type: ${(message as any).type}`);
     }
   } catch (error) {
-    sendError(
-      error instanceof Error ? error.message : String(error)
-    );
+    sendError(error instanceof Error ? error.message : String(error));
   }
 };
 
@@ -111,17 +109,17 @@ async function loadModel(options?: TranscriptionOptions): Promise<void> {
   }
 
   state.isProcessing = true;
-  sendProgress(0, 'loadingModel');
+  sendProgress(0, "loadingModel");
 
   try {
     // 动态导入 Whisper 模型
-    const { getWhisperModel } = await import('../lib/models/whisper');
+    const { getWhisperModel } = await import("../lib/models/whisper");
     whisperModel = getWhisperModel();
 
     // 设置进度回调
     whisperModel.onProgress((progress: number) => {
       if (!state.isAborted) {
-        sendProgress(progress, 'loadingModel');
+        sendProgress(progress, "loadingModel");
       }
     });
 
@@ -136,7 +134,7 @@ async function loadModel(options?: TranscriptionOptions): Promise<void> {
     state.isModelLoaded = true;
     state.isProcessing = false;
 
-    sendProgress(100, 'loadingModel');
+    sendProgress(100, "loadingModel");
     sendStatus();
   } catch (error) {
     state.isProcessing = false;
@@ -151,7 +149,7 @@ async function transcribe(message: TranscriptionWorkerMessage): Promise<void> {
   const { audioData, audioBlob, options, jobId } = message;
 
   if (!audioData && !audioBlob) {
-    throw new Error('No audio data provided');
+    throw new Error("No audio data provided");
   }
 
   // 重置中止状态
@@ -169,7 +167,7 @@ async function transcribe(message: TranscriptionWorkerMessage): Promise<void> {
       }
     }
 
-    sendProgress(0, 'processing');
+    sendProgress(0, "processing");
 
     // 准备音频数据
     let audioInput: Float32Array | Blob;
@@ -198,7 +196,7 @@ async function transcribe(message: TranscriptionWorkerMessage): Promise<void> {
     // 转换结果格式
     const segments: TranscriptSegment[] = result.segments.map((seg, idx) => ({
       id: crypto.randomUUID(),
-      job_id: jobId || '',
+      job_id: jobId || "",
       start_time: seg.start,
       end_time: seg.end,
       text: seg.text.trim(),
@@ -208,15 +206,15 @@ async function transcribe(message: TranscriptionWorkerMessage): Promise<void> {
     // 使用 WASM 进行短片段合并
     if (segments.length > 0 && jobId) {
       try {
-        const { mergeShortSegmentsWASM } = await import('../lib/wasm');
+        const { mergeShortSegmentsWASM } = await import("../lib/wasm");
         const merged = await mergeShortSegmentsWASM(
           JSON.stringify(segments),
-          options?.chunkLength || 1.0
+          options?.chunkLength || 1.0,
         );
-        result.segments = merged.map(s => ({
+        result.segments = merged.map((s) => ({
           start: s.start_time,
           end: s.end_time,
-          text: s.text
+          text: s.text,
         }));
       } catch {
         // WASM 合并失败，使用原始结果
@@ -226,7 +224,7 @@ async function transcribe(message: TranscriptionWorkerMessage): Promise<void> {
     state.isProcessing = false;
     state.currentJobId = null;
 
-    sendProgress(100, 'processing');
+    sendProgress(100, "processing");
     sendComplete(result, segments);
   } catch (error) {
     state.isProcessing = false;
@@ -248,9 +246,12 @@ function abort(): void {
 /**
  * 发送进度更新
  */
-function sendProgress(progress: number, stage: WorkerState['isProcessing'] extends boolean ? 'loadingModel' | 'processing' : never): void {
+function sendProgress(
+  progress: number,
+  stage: WorkerState["isProcessing"] extends boolean ? "loadingModel" | "processing" : never,
+): void {
   const response: TranscriptionWorkerResponse = {
-    type: 'progress',
+    type: "progress",
     progress,
     stage,
   };
@@ -262,7 +263,7 @@ function sendProgress(progress: number, stage: WorkerState['isProcessing'] exten
  */
 function sendComplete(result: WhisperResult, segments: TranscriptSegment[]): void {
   const response: TranscriptionWorkerResponse = {
-    type: 'complete',
+    type: "complete",
     result,
     segments,
     text: result.text,
@@ -276,7 +277,7 @@ function sendComplete(result: WhisperResult, segments: TranscriptSegment[]): voi
  */
 function sendStatus(): void {
   const response: TranscriptionWorkerResponse = {
-    type: 'status',
+    type: "status",
     isModelLoaded: state.isModelLoaded,
     isProcessing: state.isProcessing,
   };
@@ -288,7 +289,7 @@ function sendStatus(): void {
  */
 function sendAborted(): void {
   const response: TranscriptionWorkerResponse = {
-    type: 'aborted',
+    type: "aborted",
   };
   self.postMessage(response);
 }
@@ -298,7 +299,7 @@ function sendAborted(): void {
  */
 function sendError(error: string): void {
   const response: TranscriptionWorkerResponse = {
-    type: 'error',
+    type: "error",
     error,
   };
   self.postMessage(response);

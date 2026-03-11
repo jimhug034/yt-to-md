@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { ProcessingStep } from './VideoProcessor';
+import { ProcessingStep } from "./VideoProcessor";
 import {
   Upload,
   Music,
@@ -11,7 +11,7 @@ import {
   CheckCircle2,
   Loader2,
   ChevronRight,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface ProgressStepperProps {
   currentStep: ProcessingStep;
@@ -29,13 +29,23 @@ const STEPS: {
   description: string;
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  { key: 'loading', label: 'Loading', description: 'Loading video...', icon: Upload },
-  { key: 'extracting_audio', label: 'Audio', description: 'Extracting audio track', icon: Music },
-  { key: 'transcribing', label: 'Transcribe', description: 'Converting speech to text', icon: MessageSquare },
-  { key: 'extracting_frames', label: 'Frames', description: 'Extracting key frames', icon: Image },
-  { key: 'running_ocr', label: 'OCR', description: 'Reading text from frames', icon: ScanText },
-  { key: 'generating_summary', label: 'Summary', description: 'Generating content summary', icon: FileText },
-  { key: 'complete', label: 'Complete', description: 'Processing finished', icon: CheckCircle2 },
+  { key: "loading", label: "Loading", description: "Loading video...", icon: Upload },
+  { key: "extracting_audio", label: "Audio", description: "Extracting audio track", icon: Music },
+  {
+    key: "transcribing",
+    label: "Transcribe",
+    description: "Converting speech to text",
+    icon: MessageSquare,
+  },
+  { key: "extracting_frames", label: "Frames", description: "Extracting key frames", icon: Image },
+  { key: "running_ocr", label: "OCR", description: "Reading text from frames", icon: ScanText },
+  {
+    key: "generating_summary",
+    label: "Summary",
+    description: "Generating content summary",
+    icon: FileText,
+  },
+  { key: "complete", label: "Complete", description: "Processing finished", icon: CheckCircle2 },
 ];
 
 const formatEta = (seconds: number): string => {
@@ -54,7 +64,7 @@ export function ProgressStepper({ currentStep, progress, stepDetails }: Progress
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            {currentStep === 'complete' ? (
+            {currentStep === "complete" ? (
               <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
                 <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
@@ -65,10 +75,14 @@ export function ProgressStepper({ currentStep, progress, stepDetails }: Progress
             )}
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-                {currentStep === 'complete' ? 'Processing Complete!' : currentStepData?.label || 'Processing...'}
+                {currentStep === "complete"
+                  ? "Processing Complete!"
+                  : currentStepData?.label || "Processing..."}
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {currentStep === 'complete' ? 'Your video is ready' : currentStepData?.description || 'Please wait...'}
+                {currentStep === "complete"
+                  ? "Your video is ready"
+                  : currentStepData?.description || "Please wait..."}
               </p>
             </div>
           </div>
@@ -76,7 +90,7 @@ export function ProgressStepper({ currentStep, progress, stepDetails }: Progress
             <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {Math.round(progress)}%
             </div>
-            {stepDetails?.eta && currentStep !== 'complete' && (
+            {stepDetails?.eta && currentStep !== "complete" && (
               <div className="text-xs text-gray-500 dark:text-gray-400">
                 ETA: {formatEta(stepDetails.eta)}
               </div>
@@ -88,9 +102,9 @@ export function ProgressStepper({ currentStep, progress, stepDetails }: Progress
         <div className="h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
           <div
             className={`h-full transition-all duration-500 ease-out ${
-              currentStep === 'complete'
-                ? 'bg-green-500'
-                : 'bg-gradient-to-r from-blue-500 to-blue-600'
+              currentStep === "complete"
+                ? "bg-green-500"
+                : "bg-gradient-to-r from-blue-500 to-blue-600"
             }`}
             style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
           />
@@ -126,10 +140,10 @@ export function ProgressStepper({ currentStep, progress, stepDetails }: Progress
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 border-2 ${
                     isCompleted
-                      ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/30'
+                      ? "bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/30"
                       : isCurrent
-                      ? 'bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-500/30 scale-110'
-                      : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-400'
+                        ? "bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-500/30 scale-110"
+                        : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-400"
                   }`}
                 >
                   {isCompleted ? (
@@ -144,10 +158,10 @@ export function ProgressStepper({ currentStep, progress, stepDetails }: Progress
                   <p
                     className={`text-xs font-medium transition-colors ${
                       isCompleted
-                        ? 'text-green-600 dark:text-green-400'
+                        ? "text-green-600 dark:text-green-400"
                         : isCurrent
-                        ? 'text-blue-600 dark:text-blue-400'
-                        : 'text-gray-500 dark:text-gray-400'
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-gray-500 dark:text-gray-400"
                     }`}
                   >
                     {step.label}
@@ -160,7 +174,7 @@ export function ProgressStepper({ currentStep, progress, stepDetails }: Progress
       </div>
 
       {/* Completion Message */}
-      {currentStep === 'complete' && (
+      {currentStep === "complete" && (
         <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 animate-in slide-in-from-bottom-2 fade-in duration-500">
           <div className="flex items-center gap-3">
             <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />

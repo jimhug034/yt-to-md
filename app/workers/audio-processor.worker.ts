@@ -3,10 +3,10 @@
  * 处理音频提取和语音识别任务
  */
 
-import { getWhisperModel } from '../lib/models/whisper';
+import { getWhisperModel } from "../lib/models/whisper";
 
 export interface AudioProcessorMessage {
-  type: 'transcribe' | 'resample' | 'extract';
+  type: "transcribe" | "resample" | "extract";
   audioData?: Float32Array;
   audioBlob?: Blob;
   sampleRate?: number;
@@ -14,7 +14,7 @@ export interface AudioProcessorMessage {
 }
 
 export interface AudioProcessorResponse {
-  type: 'progress' | 'result' | 'error';
+  type: "progress" | "result" | "error";
   progress?: number;
   result?: any;
   error?: string;
@@ -27,23 +27,23 @@ self.onmessage = async (e: MessageEvent<AudioProcessorMessage>) => {
 
   try {
     switch (message.type) {
-      case 'transcribe': {
+      case "transcribe": {
         await transcribeAudio(message);
         break;
       }
-      case 'resample': {
+      case "resample": {
         resampleAudio(message);
         break;
       }
       default:
         self.postMessage({
-          type: 'error',
+          type: "error",
           error: `Unknown message type: ${message.type}`,
         } as AudioProcessorResponse);
     }
   } catch (error) {
     self.postMessage({
-      type: 'error',
+      type: "error",
       error: error instanceof Error ? error.message : String(error),
     } as AudioProcessorResponse);
   }
@@ -55,7 +55,7 @@ async function transcribeAudio(message: AudioProcessorMessage) {
 
     whisperModel.onProgress((progress: number) => {
       self.postMessage({
-        type: 'progress',
+        type: "progress",
         progress: progress * 0.5, // 模型加载占 50%
       } as AudioProcessorResponse);
     });
@@ -69,11 +69,11 @@ async function transcribeAudio(message: AudioProcessorMessage) {
   } else if (audioData) {
     result = await whisperModel.transcribe(audioData, options);
   } else {
-    throw new Error('No audio data provided');
+    throw new Error("No audio data provided");
   }
 
   self.postMessage({
-    type: 'result',
+    type: "result",
     result,
   } as AudioProcessorResponse);
 }
@@ -82,7 +82,7 @@ function resampleAudio(message: AudioProcessorMessage) {
   const { audioData, sampleRate = 16000 } = message;
 
   if (!audioData) {
-    throw new Error('No audio data provided');
+    throw new Error("No audio data provided");
   }
 
   // 简单的重采样算法
@@ -97,7 +97,7 @@ function resampleAudio(message: AudioProcessorMessage) {
   }
 
   self.postMessage({
-    type: 'result',
+    type: "result",
     result: { resampled: Array.from(resampled) },
   } as AudioProcessorResponse);
 }

@@ -21,7 +21,7 @@ export class AudioExtractor {
 
   async extractAudio(
     video: HTMLVideoElement,
-    options: AudioBufferOptions = {}
+    options: AudioBufferOptions = {},
   ): Promise<AudioBuffer> {
     const context = this.getContext();
     const source = context.createMediaElementSource(video);
@@ -30,12 +30,12 @@ export class AudioExtractor {
     // @ts-ignore - captureStream is not standard
     const stream = video.captureStream ? video.captureStream() : (video as any).mozCaptureStream();
     if (!stream) {
-      throw new Error('Cannot capture stream from video element');
+      throw new Error("Cannot capture stream from video element");
     }
 
     const audioTracks = stream.getAudioTracks();
     if (audioTracks.length === 0) {
-      throw new Error('No audio track found in video');
+      throw new Error("No audio track found in video");
     }
 
     // 使用 MediaRecorder 录制音频
@@ -51,7 +51,7 @@ export class AudioExtractor {
       };
 
       recorder.onstop = async () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const blob = new Blob(chunks, { type: "audio/webm" });
         const arrayBuffer = await blob.arrayBuffer();
         const audioBuffer = await context.decodeAudioData(arrayBuffer);
         resolve(audioBuffer);
@@ -71,14 +71,14 @@ export class AudioExtractor {
   async extractAudioRange(
     video: HTMLVideoElement,
     startTime: number,
-    endTime: number
+    endTime: number,
   ): Promise<Float32Array> {
     const context = this.getContext();
 
     // 设置视频时间
     video.currentTime = startTime;
     await new Promise((resolve) => {
-      video.addEventListener('seeked', resolve, { once: true });
+      video.addEventListener("seeked", resolve, { once: true });
     });
 
     // 播放并录制音频片段
@@ -91,13 +91,13 @@ export class AudioExtractor {
         : (video as any).mozCaptureStream();
 
       if (!stream) {
-        reject(new Error('Cannot capture stream'));
+        reject(new Error("Cannot capture stream"));
         return;
       }
 
       const audioTracks = stream.getAudioTracks();
       if (audioTracks.length === 0) {
-        reject(new Error('No audio track'));
+        reject(new Error("No audio track"));
         return;
       }
 
@@ -148,10 +148,10 @@ export class AudioExtractor {
       }
     };
 
-    writeString(0, 'RIFF');
+    writeString(0, "RIFF");
     view.setUint32(4, 36 + length, true);
-    writeString(8, 'WAVE');
-    writeString(12, 'fmt ');
+    writeString(8, "WAVE");
+    writeString(12, "fmt ");
     view.setUint32(16, 16, true);
     view.setUint16(20, 1, true);
     view.setUint16(22, audioBuffer.numberOfChannels, true);
@@ -159,7 +159,7 @@ export class AudioExtractor {
     view.setUint32(28, audioBuffer.sampleRate * 2 * audioBuffer.numberOfChannels, true);
     view.setUint16(32, audioBuffer.numberOfChannels * 2, true);
     view.setUint16(34, 16, true);
-    writeString(36, 'data');
+    writeString(36, "data");
     view.setUint32(40, length, true);
 
     // 写入音频数据
@@ -183,7 +183,7 @@ export class AudioExtractor {
       }
     }
 
-    return new Blob([buffer], { type: 'audio/wav' });
+    return new Blob([buffer], { type: "audio/wav" });
   }
 
   release() {

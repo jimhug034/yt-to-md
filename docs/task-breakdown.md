@@ -94,11 +94,11 @@
 
 ### 数据库方案
 
-| 方案 | 说明 | 推荐度 |
-|------|------|--------|
-| **sqlite-wasm** | rusqlite + wasi-kv | ⭐️⭐️⭐️⭐️⭐️ |
-| **refinery** | Rust 数据库迁移工具 | ⭐️⭐️⭐️⭐️ |
-| **sea-orm** | ORM 框架 | ⭐️⭐️⭐️ (偏重) |
+| 方案            | 说明                | 推荐度        |
+| --------------- | ------------------- | ------------- |
+| **sqlite-wasm** | rusqlite + wasi-kv  | ⭐️⭐️⭐️⭐️⭐️    |
+| **refinery**    | Rust 数据库迁移工具 | ⭐️⭐️⭐️⭐️      |
+| **sea-orm**     | ORM 框架            | ⭐️⭐️⭐️ (偏重) |
 
 **推荐:** 直接使用 `rusqlite` + IndexedDB 后端
 
@@ -447,26 +447,31 @@ export function TaskList() {
 ### P0 - 核心 Rust 逻辑 (2~3周)
 
 #### Phase 1: 数据库层 (3天)
+
 - [ ] SQLite 集成 (rusqlite)
 - [ ] Schema 定义和初始化
 - [ ] CRUD 操作封装
 - [ ] FFI 导出
 
 #### Phase 2: 核心业务逻辑 (4天)
+
 - [ ] 任务管理模块
 - [ ] 章节分析算法
 - [ ] AI 调用协调
 - [ ] 字幕处理扩展
 
 #### Phase 3: 存储层 (2天)
+
 - [ ] IndexedDB 封装
 - [ ] 大数据存储
 
 #### Phase 4: PPT 生成 (3天)
+
 - [ ] PPTX 结构生成
 - [ ] 或 JS PptxGenJS 集成
 
 #### Phase 5: UI 对接 (3天)
+
 - [ ] 设置对话框
 - [ ] 任务列表
 - [ ] 进度显示
@@ -501,6 +506,7 @@ Rust WASM
 ## 验收标准
 
 ### P0 MVP
+
 - [ ] Rust 实现所有核心逻辑
 - [ ] Next.js 只负责 UI
 - [ ] 数据持久化正常

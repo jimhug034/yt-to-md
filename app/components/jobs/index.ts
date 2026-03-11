@@ -2,4 +2,4 @@
  * Jobs Module Index
  */
 
-export * from './JobList';
+export * from "./JobList";

@@ -3,7 +3,7 @@
  * Handles database schema version upgrades and data migration
  */
 
-import type { VideoDatabase } from './indexeddb';
+import type { VideoDatabase } from "./indexeddb";
 
 /**
  * Migration interface
@@ -21,19 +21,21 @@ interface Migration {
 const migrations: Migration[] = [
   {
     version: 1,
-    name: 'initial_schema',
+    name: "initial_schema",
     up: (db: IDBDatabase) => {
       // Initial schema is defined in the VideoDatabase class
       // This migration is a placeholder for documentation
-      console.log('Database version 1: Initial schema created');
+      console.log("Database version 1: Initial schema created");
     },
   },
   {
     version: 2,
-    name: 'add_language_to_segments',
+    name: "add_language_to_segments",
     up: (db: IDBDatabase) => {
       // Add language column to transcript_segments
-      const segmentsStore = db.transaction(['transcript_segments'], 'readonly').objectStore('transcript_segments');
+      const segmentsStore = db
+        .transaction(["transcript_segments"], "readonly")
+        .objectStore("transcript_segments");
       // Note: Schema changes are handled by Dexie's version() method
       // This is just documentation for what changed
     },
@@ -90,11 +92,11 @@ export class MigrationRunner {
    */
   async rollbackTo(targetVersion: number): Promise<void> {
     if (targetVersion >= this.currentVersion) {
-      throw new Error('Target version must be lower than current version');
+      throw new Error("Target version must be lower than current version");
     }
 
     const migrationsToRollback = migrations.filter(
-      (m) => m.version > targetVersion && m.version <= this.currentVersion
+      (m) => m.version > targetVersion && m.version <= this.currentVersion,
     );
 
     // Rollback in reverse order
@@ -123,7 +125,11 @@ export class DataMigrator {
   /**
    * Migrate data from old schema to new schema
    */
-  static async migrateData(db: VideoDatabase, fromVersion: number, toVersion: number): Promise<void> {
+  static async migrateData(
+    db: VideoDatabase,
+    fromVersion: number,
+    toVersion: number,
+  ): Promise<void> {
     console.log(`Migrating data from version ${fromVersion} to ${toVersion}`);
 
     switch (fromVersion) {
@@ -134,7 +140,7 @@ export class DataMigrator {
         break;
       // Add more version migrations as needed
       default:
-        console.log('No data migration needed');
+        console.log("No data migration needed");
     }
   }
 
@@ -146,12 +152,10 @@ export class DataMigrator {
     const segments = await db.segments.toArray();
     const updates = segments.map((segment) => ({
       key: segment.id,
-      changes: { language: 'auto' } as const,
+      changes: { language: "auto" } as const,
     }));
 
-    await db.segments.bulkPut(
-      segments.map((s) => ({ ...s, language: 'auto' as const }))
-    );
+    await db.segments.bulkPut(segments.map((s) => ({ ...s, language: "auto" as const })));
 
     console.log(`Updated ${segments.length} segments with language field`);
   }
@@ -163,7 +167,7 @@ export class DataMigrator {
     let cleanedCount = 0;
 
     // Remove segments without valid job
-    const jobIds = (await db.jobs.toArray()).map(j => j.id);
+    const jobIds = (await db.jobs.toArray()).map((j) => j.id);
     const orphanSegments = (await db.segments.toArray())
       .filter((s) => !jobIds.includes(s.jobId))
       .map((s) => s.id);
@@ -197,12 +201,12 @@ export class DataMigrator {
    * Rebuild indexes
    */
   static async rebuildIndexes(db: VideoDatabase): Promise<void> {
-    console.log('Rebuilding database indexes...');
+    console.log("Rebuilding database indexes...");
 
     // Dexie handles index management automatically
     // This is a placeholder for any manual index rebuilding if needed
 
-    console.log('Index rebuild complete');
+    console.log("Index rebuild complete");
   }
 
   /**
@@ -216,7 +220,7 @@ export class DataMigrator {
 
     try {
       // Check for orphaned records
-      const jobIds = (await db.jobs.toArray()).map(j => j.id);
+      const jobIds = (await db.jobs.toArray()).map((j) => j.id);
 
       const segments = await db.segments.toArray();
       const orphanSegments = segments.filter((s) => !jobIds.includes(s.jobId));
@@ -238,7 +242,7 @@ export class DataMigrator {
 
       // Check for invalid timestamps
       const invalidSegments = segments.filter(
-        (s) => s.startTime < 0 || s.endTime < 0 || s.endTime < s.startTime
+        (s) => s.startTime < 0 || s.endTime < 0 || s.endTime < s.startTime,
       );
       if (invalidSegments.length > 0) {
         issues.push(`Found ${invalidSegments.length} segments with invalid timestamps`);
@@ -250,7 +254,7 @@ export class DataMigrator {
       }
 
       const invalidChapters = chapters.filter(
-        (c) => c.startTime < 0 || c.endTime < 0 || c.endTime < c.startTime
+        (c) => c.startTime < 0 || c.endTime < 0 || c.endTime < c.startTime,
       );
       if (invalidChapters.length > 0) {
         issues.push(`Found ${invalidChapters.length} chapters with invalid timestamps`);
@@ -271,35 +275,39 @@ export class DataMigrator {
   /**
    * Compact database (remove old data and optimize)
    */
-  static async compactDatabase(db: VideoDatabase, options: {
-    keepDays?: number;
-    keepCompletedJobs?: number;
-  } = {}): Promise<{
+  static async compactDatabase(
+    db: VideoDatabase,
+    options: {
+      keepDays?: number;
+      keepCompletedJobs?: number;
+    } = {},
+  ): Promise<{
     jobsDeleted: number;
     spaceSaved: number;
   }> {
-    const {
-      keepDays = 30,
-      keepCompletedJobs = 10,
-    } = options;
+    const { keepDays = 30, keepCompletedJobs = 10 } = options;
 
     const cutoffDate = Date.now() - keepDays * 24 * 60 * 60 * 1000;
 
     // Get old completed jobs (beyond limit)
-    const completedJobs = (await db.jobs
-      .where('status')
-      .equals('completed')
-      .filter((job) => job.createdAt < cutoffDate)
-      .reverse()
-      .offset(keepCompletedJobs)
-      .toArray()).map(j => j.id);
+    const completedJobs = (
+      await db.jobs
+        .where("status")
+        .equals("completed")
+        .filter((job) => job.createdAt < cutoffDate)
+        .reverse()
+        .offset(keepCompletedJobs)
+        .toArray()
+    ).map((j) => j.id);
 
     // Get old failed jobs
-    const failedJobs = (await db.jobs
-      .where('status')
-      .equals('failed')
-      .filter((job) => job.createdAt < cutoffDate)
-      .toArray()).map(j => j.id);
+    const failedJobs = (
+      await db.jobs
+        .where("status")
+        .equals("failed")
+        .filter((job) => job.createdAt < cutoffDate)
+        .toArray()
+    ).map((j) => j.id);
 
     const jobsToDelete = [...completedJobs, ...failedJobs];
 
@@ -343,7 +351,7 @@ export async function exportDatabaseForMigration(db: VideoDatabase): Promise<str
  */
 export async function importDatabaseForMigration(
   db: VideoDatabase,
-  jsonData: string
+  jsonData: string,
 ): Promise<number> {
   const data = JSON.parse(jsonData);
   return await db.importDatabase(data);

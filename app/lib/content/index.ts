@@ -2,4 +2,4 @@
  * Content Module Index
  */
 
-export * from './analyzer';
+export * from "./analyzer";

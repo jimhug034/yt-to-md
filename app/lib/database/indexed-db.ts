@@ -5,13 +5,13 @@
  * 用于存储大量帧数据
  */
 
-const DB_NAME = 'yt_subtitle_db';
+const DB_NAME = "yt_subtitle_db";
 const DB_VERSION = 1;
 const STORES = {
-  jobs: 'jobs',
-  segments: 'segments',
-  frames: 'frames',
-  chapters: 'chapters',
+  jobs: "jobs",
+  segments: "segments",
+  frames: "frames",
+  chapters: "chapters",
 } as const;
 
 // ============================================
@@ -53,7 +53,7 @@ export interface DbJob {
   width: number;
   height: number;
   created_at: number;
-  status: 'Pending' | 'Processing' | 'Completed' | 'Failed';
+  status: "Pending" | "Processing" | "Completed" | "Failed";
   progress: number;
   error_message?: string;
 }
@@ -88,27 +88,27 @@ class IndexedDBManager {
 
         // 创建 object stores
         if (!db.objectStoreNames.contains(STORES.jobs)) {
-          const jobStore = db.createObjectStore(STORES.jobs, { keyPath: 'id' });
-          jobStore.createIndex('status', 'status', { unique: false });
-          jobStore.createIndex('created_at', 'created_at', { unique: false });
+          const jobStore = db.createObjectStore(STORES.jobs, { keyPath: "id" });
+          jobStore.createIndex("status", "status", { unique: false });
+          jobStore.createIndex("created_at", "created_at", { unique: false });
         }
 
         if (!db.objectStoreNames.contains(STORES.segments)) {
-          const segmentStore = db.createObjectStore(STORES.segments, { keyPath: 'id' });
-          segmentStore.createIndex('job_id', 'job_id', { unique: false });
-          segmentStore.createIndex('start_time', 'start_time', { unique: false });
+          const segmentStore = db.createObjectStore(STORES.segments, { keyPath: "id" });
+          segmentStore.createIndex("job_id", "job_id", { unique: false });
+          segmentStore.createIndex("start_time", "start_time", { unique: false });
         }
 
         if (!db.objectStoreNames.contains(STORES.frames)) {
-          const frameStore = db.createObjectStore(STORES.frames, { keyPath: 'id' });
-          frameStore.createIndex('job_id', 'job_id', { unique: false });
-          frameStore.createIndex('timestamp', 'timestamp', { unique: false });
+          const frameStore = db.createObjectStore(STORES.frames, { keyPath: "id" });
+          frameStore.createIndex("job_id", "job_id", { unique: false });
+          frameStore.createIndex("timestamp", "timestamp", { unique: false });
         }
 
         if (!db.objectStoreNames.contains(STORES.chapters)) {
-          const chapterStore = db.createObjectStore(STORES.chapters, { keyPath: 'id' });
-          chapterStore.createIndex('job_id', 'job_id', { unique: false });
-          chapterStore.createIndex('start_time', 'start_time', { unique: false });
+          const chapterStore = db.createObjectStore(STORES.chapters, { keyPath: "id" });
+          chapterStore.createIndex("job_id", "job_id", { unique: false });
+          chapterStore.createIndex("start_time", "start_time", { unique: false });
         }
       };
     });
@@ -119,14 +119,14 @@ class IndexedDBManager {
    */
   private ensureOpen(): void {
     if (!this.db) {
-      throw new Error('Database not opened. Call open() first.');
+      throw new Error("Database not opened. Call open() first.");
     }
   }
 
   /**
    * 获取 object store
    */
-  private getStore(storeName: string, mode: IDBTransactionMode = 'readonly'): IDBObjectStore {
+  private getStore(storeName: string, mode: IDBTransactionMode = "readonly"): IDBObjectStore {
     this.ensureOpen();
 
     const transaction = this.db!.transaction(storeName, mode);
@@ -138,7 +138,7 @@ class IndexedDBManager {
   // ============================================
 
   async putJob(job: DbJob): Promise<void> {
-    const store = this.getStore(STORES.jobs, 'readwrite');
+    const store = this.getStore(STORES.jobs, "readwrite");
     return new Promise((resolve, reject) => {
       const request = store.put(job);
       request.onsuccess = () => resolve();
@@ -165,10 +165,13 @@ class IndexedDBManager {
   }
 
   async deleteJob(id: string): Promise<void> {
-    const store = this.getStore(STORES.jobs, 'readwrite');
+    const store = this.getStore(STORES.jobs, "readwrite");
 
     // 同时删除关联数据
-    const transaction = this.db!.transaction([STORES.jobs, STORES.segments, STORES.frames, STORES.chapters], 'readwrite');
+    const transaction = this.db!.transaction(
+      [STORES.jobs, STORES.segments, STORES.frames, STORES.chapters],
+      "readwrite",
+    );
 
     return new Promise((resolve, reject) => {
       let completed = 0;
@@ -187,7 +190,7 @@ class IndexedDBManager {
 
       // 删除关联的 segments
       const segmentStore = transaction.objectStore(STORES.segments);
-      const segmentIndex = segmentStore.index('job_id');
+      const segmentIndex = segmentStore.index("job_id");
       const segmentRequest = segmentIndex.openCursor(IDBKeyRange.only(id));
       segmentRequest.onsuccess = (event) => {
         const cursor = (event.target as IDBRequest).result;
@@ -202,7 +205,7 @@ class IndexedDBManager {
 
       // 删除关联的 frames
       const frameStore = transaction.objectStore(STORES.frames);
-      const frameIndex = frameStore.index('job_id');
+      const frameIndex = frameStore.index("job_id");
       const frameRequest = frameIndex.openCursor(IDBKeyRange.only(id));
       frameRequest.onsuccess = (event) => {
         const cursor = (event.target as IDBRequest).result;
@@ -217,7 +220,7 @@ class IndexedDBManager {
 
       // 删除关联的 chapters
       const chapterStore = transaction.objectStore(STORES.chapters);
-      const chapterIndex = chapterStore.index('job_id');
+      const chapterIndex = chapterStore.index("job_id");
       const chapterRequest = chapterIndex.openCursor(IDBKeyRange.only(id));
       chapterRequest.onsuccess = (event) => {
         const cursor = (event.target as IDBRequest).result;
@@ -237,7 +240,7 @@ class IndexedDBManager {
   // ============================================
 
   async putSegment(segment: DbSegment): Promise<void> {
-    const store = this.getStore(STORES.segments, 'readwrite');
+    const store = this.getStore(STORES.segments, "readwrite");
     return new Promise((resolve, reject) => {
       const request = store.put(segment);
       request.onsuccess = () => resolve();
@@ -246,7 +249,7 @@ class IndexedDBManager {
   }
 
   async putSegments(segments: DbSegment[]): Promise<void> {
-    const store = this.getStore(STORES.segments, 'readwrite');
+    const store = this.getStore(STORES.segments, "readwrite");
 
     for (const segment of segments) {
       await new Promise<void>((resolve, reject) => {
@@ -259,7 +262,7 @@ class IndexedDBManager {
 
   async getSegments(jobId: string): Promise<DbSegment[]> {
     const store = this.getStore(STORES.segments);
-    const index = store.index('job_id');
+    const index = store.index("job_id");
 
     return new Promise((resolve, reject) => {
       const request = index.getAll(jobId);
@@ -273,7 +276,7 @@ class IndexedDBManager {
   // ============================================
 
   async putFrame(frame: DbFrame): Promise<void> {
-    const store = this.getStore(STORES.frames, 'readwrite');
+    const store = this.getStore(STORES.frames, "readwrite");
     return new Promise((resolve, reject) => {
       const request = store.put(frame);
       request.onsuccess = () => resolve();
@@ -282,7 +285,7 @@ class IndexedDBManager {
   }
 
   async putFrames(frames: DbFrame[]): Promise<void> {
-    const store = this.getStore(STORES.frames, 'readwrite');
+    const store = this.getStore(STORES.frames, "readwrite");
 
     for (const frame of frames) {
       await new Promise<void>((resolve, reject) => {
@@ -295,7 +298,7 @@ class IndexedDBManager {
 
   async getFrames(jobId: string): Promise<DbFrame[]> {
     const store = this.getStore(STORES.frames);
-    const index = store.index('job_id');
+    const index = store.index("job_id");
 
     return new Promise((resolve, reject) => {
       const request = index.getAll(jobId);
@@ -305,7 +308,7 @@ class IndexedDBManager {
   }
 
   async updateFrameOcr(frameId: string, ocrText: string): Promise<void> {
-    const store = this.getStore(STORES.frames, 'readwrite');
+    const store = this.getStore(STORES.frames, "readwrite");
 
     return new Promise((resolve, reject) => {
       const getRequest = store.get(frameId);
@@ -329,7 +332,7 @@ class IndexedDBManager {
   // ============================================
 
   async putChapter(chapter: DbChapter): Promise<void> {
-    const store = this.getStore(STORES.chapters, 'readwrite');
+    const store = this.getStore(STORES.chapters, "readwrite");
     return new Promise((resolve, reject) => {
       const request = store.put(chapter);
       request.onsuccess = () => resolve();
@@ -338,7 +341,7 @@ class IndexedDBManager {
   }
 
   async putChapters(chapters: DbChapter[]): Promise<void> {
-    const store = this.getStore(STORES.chapters, 'readwrite');
+    const store = this.getStore(STORES.chapters, "readwrite");
 
     for (const chapter of chapters) {
       await new Promise<void>((resolve, reject) => {
@@ -351,7 +354,7 @@ class IndexedDBManager {
 
   async getChapters(jobId: string): Promise<DbChapter[]> {
     const store = this.getStore(STORES.chapters);
-    const index = store.index('job_id');
+    const index = store.index("job_id");
 
     return new Promise((resolve, reject) => {
       const request = index.getAll(jobId);
@@ -374,9 +377,9 @@ class IndexedDBManager {
 
     return {
       total_jobs: jobs.length,
-      completed_jobs: jobs.filter(j => j.status === 'Completed').length,
-      failed_jobs: jobs.filter(j => j.status === 'Failed').length,
-      pending_jobs: jobs.filter(j => j.status === 'Pending').length,
+      completed_jobs: jobs.filter((j) => j.status === "Completed").length,
+      failed_jobs: jobs.filter((j) => j.status === "Failed").length,
+      pending_jobs: jobs.filter((j) => j.status === "Pending").length,
     };
   }
 
@@ -384,12 +387,12 @@ class IndexedDBManager {
    * 清理旧数据
    */
   async cleanupOldData(days: number = 30): Promise<number> {
-    const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
+    const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
     const jobs = await this.getAllJobs();
 
     const toDelete = jobs.filter(
-      job => job.created_at < cutoffTime &&
-              (job.status === 'Completed' || job.status === 'Failed')
+      (job) =>
+        job.created_at < cutoffTime && (job.status === "Completed" || job.status === "Failed"),
     );
 
     for (const job of toDelete) {
@@ -406,7 +409,7 @@ class IndexedDBManager {
     if (!this.db) return;
 
     const stores = Object.values(STORES);
-    const transaction = this.db.transaction(stores, 'readwrite');
+    const transaction = this.db.transaction(stores, "readwrite");
 
     for (const storeName of stores) {
       const store = transaction.objectStore(storeName);

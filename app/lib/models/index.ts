@@ -14,7 +14,7 @@ export type {
   DatabaseStats,
   JobExportData,
   ExportOptions,
-} from './types';
+} from "./types";
 
 // Re-export from database module for convenience
 export type {
@@ -22,4 +22,4 @@ export type {
   TranscriptSegment as DBTranscriptSegment,
   KeyFrame as DBKeyFrame,
   Chapter as DBChapter,
-} from '../database';
+} from "../database";

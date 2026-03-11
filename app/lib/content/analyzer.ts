@@ -4,8 +4,8 @@
  * 集成 Rust WASM 的文本总结和章节分析功能
  */
 
-import { Summarizer, Chapterizer, TextProcessor } from '../../../wasm/pkg';
-import type { TranscriptSegment, Chapter } from '../wasm';
+import { Summarizer, Chapterizer, TextProcessor } from "../../../wasm/pkg";
+import type { TranscriptSegment, Chapter } from "../wasm";
 
 // ============================================
 // 类型定义
@@ -80,18 +80,33 @@ class TextSummarizer {
    */
   private removeFillerWords(text: string): string {
     const fillerWords = [
-      '嗯', '啊', '哦', '呃', '那个', '这个', '就是', '然后', '因为',
-      'um', 'uh', 'er', 'like', 'you know', 'so', 'because', 'then',
+      "嗯",
+      "啊",
+      "哦",
+      "呃",
+      "那个",
+      "这个",
+      "就是",
+      "然后",
+      "因为",
+      "um",
+      "uh",
+      "er",
+      "like",
+      "you know",
+      "so",
+      "because",
+      "then",
     ];
 
     let cleaned = text;
     for (const filler of fillerWords) {
-      const regex = new RegExp(`\\b${filler}\\b`, 'gi');
-      cleaned = cleaned.replace(regex, '');
+      const regex = new RegExp(`\\b${filler}\\b`, "gi");
+      cleaned = cleaned.replace(regex, "");
     }
 
     // 清理多余空格
-    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    cleaned = cleaned.replace(/\s+/g, " ").trim();
 
     return cleaned;
   }
@@ -125,17 +140,9 @@ class ContentChapterizer {
   /**
    * 从字幕片段生成章节
    */
-  generateChapters(
-    segments: TranscriptSegment[],
-    jobId: string,
-    totalDuration: number
-  ): Chapter[] {
+  generateChapters(segments: TranscriptSegment[], jobId: string, totalDuration: number): Chapter[] {
     const segmentsJson = JSON.stringify(segments);
-    const chaptersJson = this.chapterizer.split_chapters(
-      segmentsJson,
-      totalDuration,
-      jobId
-    );
+    const chaptersJson = this.chapterizer.split_chapters(segmentsJson, totalDuration, jobId);
 
     try {
       return JSON.parse(chaptersJson);
@@ -150,36 +157,29 @@ class ContentChapterizer {
   generateChapterSummary(
     segments: TranscriptSegment[],
     startTime: number,
-    endTime: number
+    endTime: number,
   ): string {
     const segmentsJson = JSON.stringify(segments);
-    return this.chapterizer.generate_chapter_summary(
-      segmentsJson,
-      startTime,
-      endTime
-    );
+    return this.chapterizer.generate_chapter_summary(segmentsJson, startTime, endTime);
   }
 
   /**
    * 为所有章节生成摘要和关键词
    */
-  enrichChapters(
-    chapters: Chapter[],
-    segments: TranscriptSegment[]
-  ): ChapterWithSummary[] {
+  enrichChapters(chapters: Chapter[], segments: TranscriptSegment[]): ChapterWithSummary[] {
     return chapters.map((chapter) => {
       const chapterSegments = segments.filter(
-        (s) => s.start_time >= chapter.start_time && s.end_time <= chapter.end_time
+        (s) => s.start_time >= chapter.start_time && s.end_time <= chapter.end_time,
       );
 
       const summary = this.generateChapterSummary(
         chapterSegments,
         chapter.start_time,
-        chapter.end_time
+        chapter.end_time,
       );
 
       // 提取关键词
-      const chapterText = chapterSegments.map((s) => s.text).join(' ');
+      const chapterText = chapterSegments.map((s) => s.text).join(" ");
       const summarizer = new TextSummarizer();
       const keywords = summarizer.extractKeywords(chapterText, 5);
 
@@ -208,10 +208,7 @@ class ContentAnalyzer {
   private summarizer: TextSummarizer;
   private chapterizer: ContentChapterizer;
 
-  constructor(
-    summaryOptions?: SummaryOptions,
-    chapterOptions?: ChapterSplitOptions
-  ) {
+  constructor(summaryOptions?: SummaryOptions, chapterOptions?: ChapterSplitOptions) {
     this.summarizer = new TextSummarizer(summaryOptions);
     this.chapterizer = new ContentChapterizer(chapterOptions);
   }
@@ -219,13 +216,9 @@ class ContentAnalyzer {
   /**
    * 分析转录内容，生成摘要、章节和关键词
    */
-  analyze(
-    segments: TranscriptSegment[],
-    jobId: string,
-    totalDuration: number
-  ): AnalysisResult {
+  analyze(segments: TranscriptSegment[], jobId: string, totalDuration: number): AnalysisResult {
     // 生成整体摘要
-    const fullText = segments.map((s) => s.text).join(' ');
+    const fullText = segments.map((s) => s.text).join(" ");
     const summary = this.summarizer.summarize(fullText);
 
     // 提取关键词
@@ -262,7 +255,7 @@ class ContentAnalyzer {
   chapterize(
     segments: TranscriptSegment[],
     jobId: string,
-    totalDuration: number
+    totalDuration: number,
   ): ChapterWithSummary[] {
     const chapters = this.chapterizer.generateChapters(segments, jobId, totalDuration);
     return this.chapterizer.enrichChapters(chapters, segments);
@@ -292,8 +285,4 @@ class ContentAnalyzer {
 // 导出
 // ============================================
 
-export {
-  TextSummarizer,
-  ContentChapterizer,
-  ContentAnalyzer,
-};
+export { TextSummarizer, ContentChapterizer, ContentAnalyzer };

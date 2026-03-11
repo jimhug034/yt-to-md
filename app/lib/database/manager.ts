@@ -5,20 +5,14 @@
  * 使用 LocalStorage 进行持久化（可扩展到 IndexedDB）
  */
 
-import { RustSQLite3, SQLiteHelper } from '../../../wasm/pkg';
-import type {
-  VideoJob,
-  TranscriptSegment,
-  KeyFrame,
-  Chapter,
-  JobStatus,
-} from '../wasm';
+import { RustSQLite3, SQLiteHelper } from "../../../wasm/pkg";
+import type { VideoJob, TranscriptSegment, KeyFrame, Chapter, JobStatus } from "../wasm";
 
 // ============================================
 // 类型定义
 // ============================================
 
-export type JobStatusType = 'Pending' | 'Processing' | 'Completed' | 'Failed';
+export type JobStatusType = "Pending" | "Processing" | "Completed" | "Failed";
 
 export interface DbStats {
   total_jobs: number;
@@ -81,7 +75,7 @@ class DatabaseManager {
       await this.db.init();
       this.isInitialized = true;
     } catch (error) {
-      console.error('Database init failed:', error);
+      console.error("Database init failed:", error);
       throw error;
     }
   }
@@ -91,7 +85,7 @@ class DatabaseManager {
    */
   private ensureInitialized(): void {
     if (!this.isInitialized || !this.db) {
-      throw new Error('Database not initialized. Call init() first.');
+      throw new Error("Database not initialized. Call init() first.");
     }
   }
 
@@ -119,8 +113,8 @@ class DatabaseManager {
       input.duration || 0,
       input.width || 0,
       input.height || 0,
-      input.status || 'Pending',
-      input.progress || 0
+      input.status || "Pending",
+      input.progress || 0,
     );
 
     return id;
@@ -133,7 +127,7 @@ class DatabaseManager {
       const json = this.db!.get_job(id);
       return JSON.parse(json) as VideoJob;
     } catch (error) {
-      console.error('Failed to get job:', error);
+      console.error("Failed to get job:", error);
       return null;
     }
   }
@@ -145,7 +139,7 @@ class DatabaseManager {
       const json = this.db!.get_all_jobs();
       return JSON.parse(json) as VideoJob[];
     } catch (error) {
-      console.error('Failed to get all jobs:', error);
+      console.error("Failed to get all jobs:", error);
       return [];
     }
   }
@@ -180,7 +174,7 @@ class DatabaseManager {
       input.start_time,
       input.end_time,
       input.text,
-      input.confidence || 1.0
+      input.confidence || 1.0,
     );
 
     return id;
@@ -201,7 +195,7 @@ class DatabaseManager {
       const json = this.db!.get_segments(jobId);
       return JSON.parse(json) as TranscriptSegment[];
     } catch (error) {
-      console.error('Failed to get segments:', error);
+      console.error("Failed to get segments:", error);
       return [];
     }
   }
@@ -210,11 +204,7 @@ class DatabaseManager {
   // Frame 操作
   // ============================================
 
-  async createFrame(
-    jobId: string,
-    timestamp: number,
-    imageData: Uint8Array
-  ): Promise<string> {
+  async createFrame(jobId: string, timestamp: number, imageData: Uint8Array): Promise<string> {
     this.ensureInitialized();
 
     const id = this.generateId();
@@ -231,7 +221,7 @@ class DatabaseManager {
       const json = this.db!.get_frames(jobId);
       return JSON.parse(json) as KeyFrame[];
     } catch (error) {
-      console.error('Failed to get frames:', error);
+      console.error("Failed to get frames:", error);
       return [];
     }
   }
@@ -256,7 +246,7 @@ class DatabaseManager {
       input.title,
       input.start_time,
       input.end_time,
-      input.summary || ''
+      input.summary || "",
     );
 
     return id;
@@ -277,7 +267,7 @@ class DatabaseManager {
       const json = this.db!.get_chapters(jobId);
       return JSON.parse(json) as Chapter[];
     } catch (error) {
-      console.error('Failed to get chapters:', error);
+      console.error("Failed to get chapters:", error);
       return [];
     }
   }
@@ -293,7 +283,7 @@ class DatabaseManager {
       const json = this.db!.get_stats();
       return JSON.parse(json) as DbStats;
     } catch (error) {
-      console.error('Failed to get stats:', error);
+      console.error("Failed to get stats:", error);
       return {
         total_jobs: 0,
         completed_jobs: 0,
@@ -327,7 +317,7 @@ class DatabaseManager {
     try {
       return this.db!.export_job(jobId);
     } catch (error) {
-      console.error('Failed to export job:', error);
+      console.error("Failed to export job:", error);
       return null;
     }
   }
@@ -352,8 +342,8 @@ class DatabaseManager {
       input.width || 0,
       input.height || 0,
       now,
-      input.status || 'Pending',
-      input.progress || 0
+      input.status || "Pending",
+      input.progress || 0,
     );
   }
 

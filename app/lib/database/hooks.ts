@@ -3,9 +3,15 @@
  * Provides convenient hooks for using the IndexedDB database in React components
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { getDatabase } from './indexeddb';
-import { JobStatus, type VideoJob, type TranscriptSegment, type KeyFrame, type Chapter } from '../models/types';
+import { useState, useEffect, useCallback } from "react";
+import { getDatabase } from "./indexeddb";
+import {
+  JobStatus,
+  type VideoJob,
+  type TranscriptSegment,
+  type KeyFrame,
+  type Chapter,
+} from "../models/types";
 
 /**
  * Hook for managing jobs
@@ -34,58 +40,66 @@ export function useJobs() {
     refreshJobs();
   }, [refreshJobs]);
 
-  const createJob = useCallback(async (fileName: string, sourceUrl?: string) => {
-    try {
-      const job = await db.createJob({
-        sourceUrl,
-        fileName,
-        duration: 0,
-        width: 0,
-        height: 0,
-        status: JobStatus.Pending,
-        progress: 0,
-      });
-      await refreshJobs();
-      return job;
-    } catch (err) {
-      setError(err as Error);
-      throw err;
-    }
-  }, [db, refreshJobs]);
+  const createJob = useCallback(
+    async (fileName: string, sourceUrl?: string) => {
+      try {
+        const job = await db.createJob({
+          sourceUrl,
+          fileName,
+          duration: 0,
+          width: 0,
+          height: 0,
+          status: JobStatus.Pending,
+          progress: 0,
+        });
+        await refreshJobs();
+        return job;
+      } catch (err) {
+        setError(err as Error);
+        throw err;
+      }
+    },
+    [db, refreshJobs],
+  );
 
-  const deleteJob = useCallback(async (jobId: string) => {
-    try {
-      await db.deleteJob(jobId);
-      await refreshJobs();
-    } catch (err) {
-      setError(err as Error);
-      throw err;
-    }
-  }, [db, refreshJobs]);
+  const deleteJob = useCallback(
+    async (jobId: string) => {
+      try {
+        await db.deleteJob(jobId);
+        await refreshJobs();
+      } catch (err) {
+        setError(err as Error);
+        throw err;
+      }
+    },
+    [db, refreshJobs],
+  );
 
-  const updateJobProgress = useCallback(async (jobId: string, progress: number) => {
-    try {
-      await db.updateJobProgress(jobId, progress);
-      setJobs((prev) =>
-        prev.map((j) => (j.id === jobId ? { ...j, progress } : j))
-      );
-    } catch (err) {
-      setError(err as Error);
-      throw err;
-    }
-  }, [db]);
+  const updateJobProgress = useCallback(
+    async (jobId: string, progress: number) => {
+      try {
+        await db.updateJobProgress(jobId, progress);
+        setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, progress } : j)));
+      } catch (err) {
+        setError(err as Error);
+        throw err;
+      }
+    },
+    [db],
+  );
 
-  const updateJobStatus = useCallback(async (jobId: string, status: VideoJob['status']) => {
-    try {
-      await db.updateJobStatus(jobId, status);
-      setJobs((prev) =>
-        prev.map((j) => (j.id === jobId ? { ...j, status } : j))
-      );
-    } catch (err) {
-      setError(err as Error);
-      throw err;
-    }
-  }, [db]);
+  const updateJobStatus = useCallback(
+    async (jobId: string, status: VideoJob["status"]) => {
+      try {
+        await db.updateJobStatus(jobId, status);
+        setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, status } : j)));
+      } catch (err) {
+        setError(err as Error);
+        throw err;
+      }
+    },
+    [db],
+  );
 
   return {
     jobs,
@@ -134,35 +148,44 @@ export function useJob(jobId: string) {
     refreshJob();
   }, [refreshJob]);
 
-  const addSegments = useCallback(async (newSegments: Omit<TranscriptSegment, 'id' | 'createdAt' | 'jobId'>[]) => {
-    try {
-      await db.addSegments(jobId, newSegments);
-      await refreshJob();
-    } catch (err) {
-      setError(err as Error);
-      throw err;
-    }
-  }, [db, jobId, refreshJob]);
+  const addSegments = useCallback(
+    async (newSegments: Omit<TranscriptSegment, "id" | "createdAt" | "jobId">[]) => {
+      try {
+        await db.addSegments(jobId, newSegments);
+        await refreshJob();
+      } catch (err) {
+        setError(err as Error);
+        throw err;
+      }
+    },
+    [db, jobId, refreshJob],
+  );
 
-  const addFrames = useCallback(async (newFrames: Omit<KeyFrame, 'id' | 'createdAt' | 'jobId'>[]) => {
-    try {
-      await db.addFrames(jobId, newFrames);
-      await refreshJob();
-    } catch (err) {
-      setError(err as Error);
-      throw err;
-    }
-  }, [db, jobId, refreshJob]);
+  const addFrames = useCallback(
+    async (newFrames: Omit<KeyFrame, "id" | "createdAt" | "jobId">[]) => {
+      try {
+        await db.addFrames(jobId, newFrames);
+        await refreshJob();
+      } catch (err) {
+        setError(err as Error);
+        throw err;
+      }
+    },
+    [db, jobId, refreshJob],
+  );
 
-  const addChapters = useCallback(async (newChapters: Omit<Chapter, 'id' | 'createdAt' | 'jobId'>[]) => {
-    try {
-      await db.addChapters(jobId, newChapters);
-      await refreshJob();
-    } catch (err) {
-      setError(err as Error);
-      throw err;
-    }
-  }, [db, jobId, refreshJob]);
+  const addChapters = useCallback(
+    async (newChapters: Omit<Chapter, "id" | "createdAt" | "jobId">[]) => {
+      try {
+        await db.addChapters(jobId, newChapters);
+        await refreshJob();
+      } catch (err) {
+        setError(err as Error);
+        throw err;
+      }
+    },
+    [db, jobId, refreshJob],
+  );
 
   return {
     job,
@@ -239,45 +262,54 @@ export function useDatabase() {
     }
   }, [db]);
 
-  const clearOldJobs = useCallback(async (daysOld: number = 30) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const count = await db.clearOldJobs(daysOld);
-      return count;
-    } catch (err) {
-      setError(err as Error);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [db]);
+  const clearOldJobs = useCallback(
+    async (daysOld: number = 30) => {
+      try {
+        setLoading(true);
+        setError(null);
+        const count = await db.clearOldJobs(daysOld);
+        return count;
+      } catch (err) {
+        setError(err as Error);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [db],
+  );
 
-  const exportDatabase = useCallback(async (jobIds?: string[]) => {
-    try {
-      setLoading(true);
-      setError(null);
-      return await db.exportDatabase(jobIds);
-    } catch (err) {
-      setError(err as Error);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [db]);
+  const exportDatabase = useCallback(
+    async (jobIds?: string[]) => {
+      try {
+        setLoading(true);
+        setError(null);
+        return await db.exportDatabase(jobIds);
+      } catch (err) {
+        setError(err as Error);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [db],
+  );
 
-  const importDatabase = useCallback(async (data: any) => {
-    try {
-      setLoading(true);
-      setError(null);
-      return await db.importDatabase(data);
-    } catch (err) {
-      setError(err as Error);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [db]);
+  const importDatabase = useCallback(
+    async (data: any) => {
+      try {
+        setLoading(true);
+        setError(null);
+        return await db.importDatabase(data);
+      } catch (err) {
+        setError(err as Error);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [db],
+  );
 
   return {
     loading,

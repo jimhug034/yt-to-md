@@ -13,37 +13,31 @@ import type {
   TranscriptionWorkerMessage,
   TranscriptionWorkerResponse,
   TranscriptionOptions,
-} from './transcription.worker';
+} from "./transcription.worker";
 
 import type {
   OcrWorkerMessage,
   OcrWorkerResponse,
   OcrWorkerOptions,
   OcrFrameResult,
-} from './ocr.worker';
+} from "./ocr.worker";
 
 import type {
   FrameExtractionWorkerMessage,
   FrameExtractionWorkerResponse,
   FrameExtractionOptions as WorkerFrameExtractionOptions,
   ExtractedFrameResult,
-} from './frame-extraction.worker';
+} from "./frame-extraction.worker";
 
 import type {
   WhisperWorkerMessage,
   WhisperWorkerResponse,
   WhisperWorkerOptions,
-} from './whisper.worker';
+} from "./whisper.worker";
 
-import type {
-  TranscriptSegment,
-  KeyFrame,
-} from '../lib/wasm';
+import type { TranscriptSegment, KeyFrame } from "../lib/wasm";
 
-import type {
-  WhisperResult,
-  WhisperSegment,
-} from '../lib/models/whisper';
+import type { WhisperResult, WhisperSegment } from "../lib/models/whisper";
 
 // ============================================
 // 通用 Worker 包装器类型
@@ -53,11 +47,14 @@ interface WorkerWrapper<Message, Response> {
   worker: Worker | null;
   isReady: boolean;
   messageId: number;
-  pendingMessages: Map<number, {
-    resolve: (value: any) => void;
-    reject: (error: Error) => void;
-    onProgress?: (progress: number, data?: any) => void;
-  }>;
+  pendingMessages: Map<
+    number,
+    {
+      resolve: (value: any) => void;
+      reject: (error: Error) => void;
+      onProgress?: (progress: number, data?: any) => void;
+    }
+  >;
   create(): void;
   terminate(): void;
   send<T = any>(message: Message, options?: WorkerSendOptions): Promise<T>;
@@ -73,30 +70,35 @@ interface WorkerSendOptions {
 // Transcription Worker 管理器
 // ============================================
 
-class TranscriptionWorkerManager implements WorkerWrapper<TranscriptionWorkerMessage, TranscriptionWorkerResponse> {
+class TranscriptionWorkerManager implements WorkerWrapper<
+  TranscriptionWorkerMessage,
+  TranscriptionWorkerResponse
+> {
   worker: Worker | null = null;
   isReady = false;
   messageId = 0;
-  pendingMessages = new Map<number, {
-    resolve: (value: any) => void;
-    reject: (error: Error) => void;
-    onProgress?: (progress: number, data?: any) => void;
-  }>();
+  pendingMessages = new Map<
+    number,
+    {
+      resolve: (value: any) => void;
+      reject: (error: Error) => void;
+      onProgress?: (progress: number, data?: any) => void;
+    }
+  >();
 
   create(): void {
     if (this.worker) return;
 
-    this.worker = new Worker(
-      new URL('./transcription.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+    this.worker = new Worker(new URL("./transcription.worker.ts", import.meta.url), {
+      type: "module",
+    });
 
     this.worker.onmessage = (e: MessageEvent<TranscriptionWorkerResponse>) => {
       this.handleMessage(e.data);
     };
 
     this.worker.onerror = (error) => {
-      console.error('Transcription worker error:', error);
+      console.error("Transcription worker error:", error);
     };
 
     this.isReady = true;
@@ -113,7 +115,7 @@ class TranscriptionWorkerManager implements WorkerWrapper<TranscriptionWorkerMes
 
   async send<T = TranscriptionWorkerResponse>(
     message: TranscriptionWorkerMessage,
-    options?: WorkerSendOptions
+    options?: WorkerSendOptions,
   ): Promise<T> {
     if (!this.worker) {
       this.create();
@@ -151,54 +153,54 @@ class TranscriptionWorkerManager implements WorkerWrapper<TranscriptionWorkerMes
     if (!entry) return;
 
     switch (data.type) {
-      case 'progress':
+      case "progress":
         entry.onProgress?.(data.progress || 0, { stage: data.stage });
         break;
 
-      case 'complete':
+      case "complete":
         this.pendingMessages.clear();
         entry.resolve(data);
         break;
 
-      case 'status':
+      case "status":
         // 状态更新，不解析 promise
         break;
 
-      case 'aborted':
+      case "aborted":
         this.pendingMessages.clear();
-        entry.reject(new Error('Worker operation aborted'));
+        entry.reject(new Error("Worker operation aborted"));
         break;
 
-      case 'error':
+      case "error":
         this.pendingMessages.clear();
-        entry.reject(new Error(data.error || 'Unknown worker error'));
+        entry.reject(new Error(data.error || "Unknown worker error"));
         break;
     }
   }
 
   // 便捷方法
   async loadModel(options?: TranscriptionOptions): Promise<void> {
-    await this.send({ type: 'loadModel', options });
+    await this.send({ type: "loadModel", options });
   }
 
   async transcribe(
     audioData: Float32Array | Blob,
     options?: TranscriptionOptions & { jobId?: string },
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
   ): Promise<{ result: WhisperResult; segments: TranscriptSegment[] }> {
     const message: TranscriptionWorkerMessage = {
-      type: 'transcribe',
+      type: "transcribe",
       audioData: audioData instanceof Float32Array ? Array.from(audioData) : undefined,
       audioBlob: audioData instanceof Blob ? audioData : undefined,
       options,
     };
 
-    const response = await this.send(message, { onProgress }) as TranscriptionWorkerResponse & {
+    const response = (await this.send(message, { onProgress })) as TranscriptionWorkerResponse & {
       result?: WhisperResult;
       segments?: TranscriptSegment[];
     };
 
-    if (response.type === 'error') {
+    if (response.type === "error") {
       throw new Error(response.error);
     }
 
@@ -209,11 +211,11 @@ class TranscriptionWorkerManager implements WorkerWrapper<TranscriptionWorkerMes
   }
 
   async abort(): Promise<void> {
-    await this.send({ type: 'abort' });
+    await this.send({ type: "abort" });
   }
 
   async getStatus(): Promise<{ isModelLoaded: boolean; isProcessing: boolean }> {
-    const response = await this.send({ type: 'getStatus' }) as TranscriptionWorkerResponse & {
+    const response = (await this.send({ type: "getStatus" })) as TranscriptionWorkerResponse & {
       isModelLoaded?: boolean;
       isProcessing?: boolean;
     };
@@ -232,26 +234,26 @@ class OcrWorkerManager implements WorkerWrapper<OcrWorkerMessage, OcrWorkerRespo
   worker: Worker | null = null;
   isReady = false;
   messageId = 0;
-  pendingMessages = new Map<number, {
-    resolve: (value: any) => void;
-    reject: (error: Error) => void;
-    onProgress?: (progress: number, data?: any) => void;
-  }>();
+  pendingMessages = new Map<
+    number,
+    {
+      resolve: (value: any) => void;
+      reject: (error: Error) => void;
+      onProgress?: (progress: number, data?: any) => void;
+    }
+  >();
 
   create(): void {
     if (this.worker) return;
 
-    this.worker = new Worker(
-      new URL('./ocr.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+    this.worker = new Worker(new URL("./ocr.worker.ts", import.meta.url), { type: "module" });
 
     this.worker.onmessage = (e: MessageEvent<OcrWorkerResponse>) => {
       this.handleMessage(e.data);
     };
 
     this.worker.onerror = (error) => {
-      console.error('OCR worker error:', error);
+      console.error("OCR worker error:", error);
     };
 
     this.isReady = true;
@@ -268,7 +270,7 @@ class OcrWorkerManager implements WorkerWrapper<OcrWorkerMessage, OcrWorkerRespo
 
   async send<T = OcrWorkerResponse>(
     message: OcrWorkerMessage,
-    options?: WorkerSendOptions
+    options?: WorkerSendOptions,
   ): Promise<T> {
     if (!this.worker) {
       this.create();
@@ -304,35 +306,35 @@ class OcrWorkerManager implements WorkerWrapper<OcrWorkerMessage, OcrWorkerRespo
     if (!entry) return;
 
     switch (data.type) {
-      case 'progress':
+      case "progress":
         entry.onProgress?.(data.progress || 0, { stage: data.stage, index: data.index });
         break;
 
-      case 'complete':
+      case "complete":
         this.pendingMessages.delete(data._id);
         entry.resolve(data);
         break;
 
-      case 'status':
+      case "status":
         // 状态更新，不解析 promise
         break;
 
-      case 'aborted':
+      case "aborted":
         this.pendingMessages.delete(data._id);
-        entry.reject(new Error('OCR worker operation aborted'));
+        entry.reject(new Error("OCR worker operation aborted"));
         break;
 
-      case 'error':
+      case "error":
         this.pendingMessages.delete(data._id);
-        entry.reject(new Error(data.error || 'Unknown OCR worker error'));
+        entry.reject(new Error(data.error || "Unknown OCR worker error"));
         break;
     }
   }
 
   // 便捷方法
   async loadModel(options?: OcrWorkerOptions): Promise<void> {
-    const response = await this.send({ type: 'loadModel', options, _id: 0 }) as OcrWorkerResponse;
-    if (response.type === 'error') {
+    const response = (await this.send({ type: "loadModel", options, _id: 0 })) as OcrWorkerResponse;
+    if (response.type === "error") {
       throw new Error(response.error);
     }
   }
@@ -341,25 +343,27 @@ class OcrWorkerManager implements WorkerWrapper<OcrWorkerMessage, OcrWorkerRespo
     imageData: Uint8ClampedArray | number[],
     width: number,
     height: number,
-    options?: OcrWorkerOptions & { timestamp?: number }
+    options?: OcrWorkerOptions & { timestamp?: number },
   ): Promise<OcrFrameResult> {
     const message: OcrWorkerMessage = {
-      type: 'recognize',
-      images: [{
-        imageData: Array.from(imageData),
-        width,
-        height,
-        timestamp: options?.timestamp,
-      }],
+      type: "recognize",
+      images: [
+        {
+          imageData: Array.from(imageData),
+          width,
+          height,
+          timestamp: options?.timestamp,
+        },
+      ],
       options,
       _id: 0,
     };
 
-    const response = await this.send(message) as OcrWorkerResponse & {
+    const response = (await this.send(message)) as OcrWorkerResponse & {
       results?: OcrFrameResult[];
     };
 
-    if (response.type === 'error') {
+    if (response.type === "error") {
       throw new Error(response.error);
     }
 
@@ -369,20 +373,20 @@ class OcrWorkerManager implements WorkerWrapper<OcrWorkerMessage, OcrWorkerRespo
   async recognizeBatch(
     images: Array<{ imageData: number[]; width: number; height: number; timestamp?: number }>,
     options?: OcrWorkerOptions,
-    onProgress?: (progress: number, index?: number) => void
+    onProgress?: (progress: number, index?: number) => void,
   ): Promise<OcrFrameResult[]> {
     const message: OcrWorkerMessage = {
-      type: 'recognizeBatch',
+      type: "recognizeBatch",
       images,
       options,
       _id: 0,
     };
 
-    const response = await this.send(message, { onProgress }) as OcrWorkerResponse & {
+    const response = (await this.send(message, { onProgress })) as OcrWorkerResponse & {
       results?: OcrFrameResult[];
     };
 
-    if (response.type === 'error') {
+    if (response.type === "error") {
       throw new Error(response.error);
     }
 
@@ -390,11 +394,11 @@ class OcrWorkerManager implements WorkerWrapper<OcrWorkerMessage, OcrWorkerRespo
   }
 
   async abort(): Promise<void> {
-    await this.send({ type: 'abort', _id: 0 });
+    await this.send({ type: "abort", _id: 0 });
   }
 
   async getStatus(): Promise<{ isModelLoaded: boolean; isProcessing: boolean }> {
-    const response = await this.send({ type: 'getStatus', _id: 0 }) as OcrWorkerResponse & {
+    const response = (await this.send({ type: "getStatus", _id: 0 })) as OcrWorkerResponse & {
       isModelLoaded?: boolean;
       isProcessing?: boolean;
     };
@@ -409,15 +413,21 @@ class OcrWorkerManager implements WorkerWrapper<OcrWorkerMessage, OcrWorkerRespo
 // Frame Extraction Worker 管理器
 // ============================================
 
-class FrameExtractionWorkerManager implements WorkerWrapper<FrameExtractionWorkerMessage, FrameExtractionWorkerResponse> {
+class FrameExtractionWorkerManager implements WorkerWrapper<
+  FrameExtractionWorkerMessage,
+  FrameExtractionWorkerResponse
+> {
   worker: Worker | null = null;
   isReady = false;
   messageId = 0;
-  pendingMessages = new Map<number, {
-    resolve: (value: any) => void;
-    reject: (error: Error) => void;
-    onProgress?: (progress: number, data?: any) => void;
-  }>();
+  pendingMessages = new Map<
+    number,
+    {
+      resolve: (value: any) => void;
+      reject: (error: Error) => void;
+      onProgress?: (progress: number, data?: any) => void;
+    }
+  >();
 
   private onFrameCallback?: ((frame: ExtractedFrameResult) => void) | null;
   private onRequestFramesCallback?: ((timestamps: number[]) => void) | null;
@@ -425,17 +435,16 @@ class FrameExtractionWorkerManager implements WorkerWrapper<FrameExtractionWorke
   create(): void {
     if (this.worker) return;
 
-    this.worker = new Worker(
-      new URL('./frame-extraction.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+    this.worker = new Worker(new URL("./frame-extraction.worker.ts", import.meta.url), {
+      type: "module",
+    });
 
     this.worker.onmessage = (e: MessageEvent<FrameExtractionWorkerResponse>) => {
       this.handleMessage(e.data);
     };
 
     this.worker.onerror = (error) => {
-      console.error('Frame extraction worker error:', error);
+      console.error("Frame extraction worker error:", error);
     };
 
     this.isReady = true;
@@ -454,7 +463,7 @@ class FrameExtractionWorkerManager implements WorkerWrapper<FrameExtractionWorke
 
   async send<T = FrameExtractionWorkerResponse>(
     message: FrameExtractionWorkerMessage,
-    options?: WorkerSendOptions
+    options?: WorkerSendOptions,
   ): Promise<T> {
     if (!this.worker) {
       this.create();
@@ -486,17 +495,17 @@ class FrameExtractionWorkerManager implements WorkerWrapper<FrameExtractionWorke
 
   private handleMessage(data: FrameExtractionWorkerResponse): void {
     switch (data.type) {
-      case 'requestFrames':
+      case "requestFrames":
         // 通知主线程需要提取的帧
         this.onRequestFramesCallback?.(data.frameTimestamps || []);
         break;
 
-      case 'result':
+      case "result":
         // 单个帧处理完成
         this.onFrameCallback?.(data.frame!);
         break;
 
-      case 'progress':
+      case "progress":
         const entry = Array.from(this.pendingMessages.values())[0];
         entry?.onProgress?.(data.progress || 0, {
           stage: data.stage,
@@ -505,7 +514,7 @@ class FrameExtractionWorkerManager implements WorkerWrapper<FrameExtractionWorke
         });
         break;
 
-      case 'complete':
+      case "complete":
         const completeEntry = Array.from(this.pendingMessages.values())[0];
         if (completeEntry) {
           this.pendingMessages.clear();
@@ -513,7 +522,7 @@ class FrameExtractionWorkerManager implements WorkerWrapper<FrameExtractionWorke
         }
         break;
 
-      case 'sceneChanges':
+      case "sceneChanges":
         const sceneEntry = Array.from(this.pendingMessages.values())[0];
         if (sceneEntry) {
           this.pendingMessages.clear();
@@ -521,19 +530,19 @@ class FrameExtractionWorkerManager implements WorkerWrapper<FrameExtractionWorke
         }
         break;
 
-      case 'status':
+      case "status":
         break;
 
-      case 'aborted':
-        this.pendingMessages.forEach(entry => {
-          entry.reject(new Error('Frame extraction worker operation aborted'));
+      case "aborted":
+        this.pendingMessages.forEach((entry) => {
+          entry.reject(new Error("Frame extraction worker operation aborted"));
         });
         this.pendingMessages.clear();
         break;
 
-      case 'error':
-        this.pendingMessages.forEach(entry => {
-          entry.reject(new Error(data.error || 'Unknown frame extraction worker error'));
+      case "error":
+        this.pendingMessages.forEach((entry) => {
+          entry.reject(new Error(data.error || "Unknown frame extraction worker error"));
         });
         this.pendingMessages.clear();
         break;
@@ -544,21 +553,21 @@ class FrameExtractionWorkerManager implements WorkerWrapper<FrameExtractionWorke
   async extractFrames(
     videoMetadata: VideoMetadataInput,
     options?: WorkerFrameExtractionOptions & { jobId?: string },
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
   ): Promise<{ frames: ExtractedFrameResult[]; sceneChanges: number[] }> {
     const message: FrameExtractionWorkerMessage = {
-      type: 'extractFrames',
+      type: "extractFrames",
       videoMetadata,
       options,
       jobId: options?.jobId,
     };
 
-    const response = await this.send(message, { onProgress }) as FrameExtractionWorkerResponse & {
+    const response = (await this.send(message, { onProgress })) as FrameExtractionWorkerResponse & {
       frames?: ExtractedFrameResult[];
       sceneChanges?: number[];
     };
 
-    if (response.type === 'error') {
+    if (response.type === "error") {
       throw new Error(response.error);
     }
 
@@ -572,25 +581,25 @@ class FrameExtractionWorkerManager implements WorkerWrapper<FrameExtractionWorke
     frames: Array<{ imageData: number[]; timestamp: number; width: number; height: number }>,
     options?: WorkerFrameExtractionOptions & { jobId?: string },
     onProgress?: (progress: number) => void,
-    onFrame?: (frame: ExtractedFrameResult) => void
+    onFrame?: (frame: ExtractedFrameResult) => void,
   ): Promise<{ frames: ExtractedFrameResult[]; sceneChanges: number[] }> {
     this.onFrameCallback = onFrame || null;
 
     const message: FrameExtractionWorkerMessage = {
-      type: 'processFrame',
+      type: "processFrame",
       frames,
       options,
       jobId: options?.jobId,
     };
 
-    const response = await this.send(message, { onProgress }) as FrameExtractionWorkerResponse & {
+    const response = (await this.send(message, { onProgress })) as FrameExtractionWorkerResponse & {
       frames?: ExtractedFrameResult[];
       sceneChanges?: number[];
     };
 
     this.onFrameCallback = null;
 
-    if (response.type === 'error') {
+    if (response.type === "error") {
       throw new Error(response.error);
     }
 
@@ -603,19 +612,19 @@ class FrameExtractionWorkerManager implements WorkerWrapper<FrameExtractionWorke
   async detectScenes(
     frames: Array<{ imageData: number[]; timestamp: number; width: number; height: number }>,
     options?: WorkerFrameExtractionOptions,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
   ): Promise<number[]> {
     const message: FrameExtractionWorkerMessage = {
-      type: 'detectScenes',
+      type: "detectScenes",
       frames,
       options,
     };
 
-    const response = await this.send(message, { onProgress }) as FrameExtractionWorkerResponse & {
+    const response = (await this.send(message, { onProgress })) as FrameExtractionWorkerResponse & {
       sceneChanges?: number[];
     };
 
-    if (response.type === 'error') {
+    if (response.type === "error") {
       throw new Error(response.error);
     }
 
@@ -627,11 +636,11 @@ class FrameExtractionWorkerManager implements WorkerWrapper<FrameExtractionWorke
   }
 
   async abort(): Promise<void> {
-    await this.send({ type: 'abort' });
+    await this.send({ type: "abort" });
   }
 
   async getStatus(): Promise<{ isProcessing: boolean }> {
-    const response = await this.send({ type: 'getStatus' }) as FrameExtractionWorkerResponse & {
+    const response = (await this.send({ type: "getStatus" })) as FrameExtractionWorkerResponse & {
       isProcessing?: boolean;
     };
     return {
@@ -648,26 +657,26 @@ class WhisperWorkerManager implements WorkerWrapper<WhisperWorkerMessage, Whispe
   worker: Worker | null = null;
   isReady = false;
   messageId = 0;
-  pendingMessages = new Map<number, {
-    resolve: (value: any) => void;
-    reject: (error: Error) => void;
-    onProgress?: (progress: number, data?: any) => void;
-  }>();
+  pendingMessages = new Map<
+    number,
+    {
+      resolve: (value: any) => void;
+      reject: (error: Error) => void;
+      onProgress?: (progress: number, data?: any) => void;
+    }
+  >();
 
   create(): void {
     if (this.worker) return;
 
-    this.worker = new Worker(
-      new URL('./whisper.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+    this.worker = new Worker(new URL("./whisper.worker.ts", import.meta.url), { type: "module" });
 
     this.worker.onmessage = (e: MessageEvent<WhisperWorkerResponse>) => {
       this.handleMessage(e.data);
     };
 
     this.worker.onerror = (error) => {
-      console.error('Whisper worker error:', error);
+      console.error("Whisper worker error:", error);
     };
 
     this.isReady = true;
@@ -684,7 +693,7 @@ class WhisperWorkerManager implements WorkerWrapper<WhisperWorkerMessage, Whispe
 
   async send<T = WhisperWorkerResponse>(
     message: WhisperWorkerMessage,
-    options?: WorkerSendOptions
+    options?: WorkerSendOptions,
   ): Promise<T> {
     if (!this.worker) {
       this.create();
@@ -721,43 +730,43 @@ class WhisperWorkerManager implements WorkerWrapper<WhisperWorkerMessage, Whispe
     if (!entry) return;
 
     switch (data.type) {
-      case 'progress':
+      case "progress":
         entry.onProgress?.(data.progress || 0, { stage: data.stage });
         break;
 
-      case 'complete':
+      case "complete":
         this.pendingMessages.clear();
         entry.resolve(data);
         break;
 
-      case 'status':
+      case "status":
         // 状态更新，不解析 promise
         break;
 
-      case 'aborted':
+      case "aborted":
         this.pendingMessages.clear();
-        entry.reject(new Error('Worker operation aborted'));
+        entry.reject(new Error("Worker operation aborted"));
         break;
 
-      case 'error':
+      case "error":
         this.pendingMessages.clear();
-        entry.reject(new Error(data.error || 'Unknown worker error'));
+        entry.reject(new Error(data.error || "Unknown worker error"));
         break;
     }
   }
 
   // 便捷方法
   async loadModel(options?: WhisperWorkerOptions): Promise<void> {
-    await this.send({ type: 'loadModel', options } as WhisperWorkerMessage);
+    await this.send({ type: "loadModel", options } as WhisperWorkerMessage);
   }
 
   async transcribe(
     audioData: Float32Array | Blob,
     options?: WhisperWorkerOptions & { jobId?: string },
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
   ): Promise<{ result: WhisperResult; segments: WhisperSegment[] }> {
     let message: any = {
-      type: 'transcribe',
+      type: "transcribe",
       options,
     };
 
@@ -767,12 +776,12 @@ class WhisperWorkerManager implements WorkerWrapper<WhisperWorkerMessage, Whispe
       message.audioBlob = audioData;
     }
 
-    const response = await this.send(message, { onProgress }) as WhisperWorkerResponse & {
+    const response = (await this.send(message, { onProgress })) as WhisperWorkerResponse & {
       result?: WhisperResult;
       segments?: WhisperSegment[];
     };
 
-    if (response.type === 'error') {
+    if (response.type === "error") {
       throw new Error(response.error);
     }
 
@@ -783,11 +792,13 @@ class WhisperWorkerManager implements WorkerWrapper<WhisperWorkerMessage, Whispe
   }
 
   async abort(): Promise<void> {
-    await this.send({ type: 'abort' } as WhisperWorkerMessage);
+    await this.send({ type: "abort" } as WhisperWorkerMessage);
   }
 
   async getStatus(): Promise<{ isModelLoaded: boolean; isProcessing: boolean }> {
-    const response = await this.send({ type: 'getStatus' } as WhisperWorkerMessage) as WhisperWorkerResponse & {
+    const response = (await this.send({
+      type: "getStatus",
+    } as WhisperWorkerMessage)) as WhisperWorkerResponse & {
       isModelLoaded?: boolean;
       isProcessing?: boolean;
     };

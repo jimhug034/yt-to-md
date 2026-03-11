@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from "react";
 import {
   Download,
   FileText,
@@ -18,8 +18,8 @@ import {
   Clock,
   Film,
   Loader2,
-} from 'lucide-react';
-import type { VideoJob, TranscriptSegment, Chapter, KeyFrame } from '@/app/lib/wasm';
+} from "lucide-react";
+import type { VideoJob, TranscriptSegment, Chapter, KeyFrame } from "@/app/lib/wasm";
 
 interface OutputViewerProps {
   job: VideoJob;
@@ -29,8 +29,8 @@ interface OutputViewerProps {
   onReset: () => void;
 }
 
-type ViewMode = 'preview' | 'markdown' | 'json' | 'statistics';
-type ExportFormat = 'markdown' | 'json' | 'txt' | 'srt';
+type ViewMode = "preview" | "markdown" | "json" | "statistics";
+type ExportFormat = "markdown" | "json" | "txt" | "srt";
 
 interface PptxExportProgress {
   isExporting: boolean;
@@ -39,21 +39,17 @@ interface PptxExportProgress {
   slideCount?: number;
 }
 
-export function OutputViewer({
-  job,
-  segments,
-  chapters,
-  frames,
-  onReset,
-}: OutputViewerProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>('preview');
-  const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set(chapters.map(c => c.id)));
+export function OutputViewer({ job, segments, chapters, frames, onReset }: OutputViewerProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>("preview");
+  const [expandedChapters, setExpandedChapters] = useState<Set<string>>(
+    new Set(chapters.map((c) => c.id)),
+  );
   const [copied, setCopied] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [pptxProgress, setPptxProgress] = useState<PptxExportProgress>({
     isExporting: false,
     progress: 0,
-    message: '',
+    message: "",
   });
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -63,9 +59,9 @@ export function OutputViewer({
     const secs = Math.floor(seconds % 60);
 
     if (hours > 0) {
-      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      return `${hours}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
     }
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }, []);
 
   const toggleChapter = useCallback((chapterId: string) => {
@@ -80,9 +76,12 @@ export function OutputViewer({
     });
   }, []);
 
-  const toggleAllChapters = useCallback((expand: boolean) => {
-    setExpandedChapters(expand ? new Set(chapters.map(c => c.id)) : new Set());
-  }, [chapters]);
+  const toggleAllChapters = useCallback(
+    (expand: boolean) => {
+      setExpandedChapters(expand ? new Set(chapters.map((c) => c.id)) : new Set());
+    },
+    [chapters],
+  );
 
   const generateMarkdown = useCallback(() => {
     let md = `# ${job.file_name}\n\n`;
@@ -98,9 +97,9 @@ export function OutputViewer({
     if (chapters.length > 0) {
       md += `## Table of Contents\n\n`;
       chapters.forEach((ch, i) => {
-        md += `${i + 1}. [${ch.title}](#${i + 1}-${ch.title.toLowerCase().replace(/\s+/g, '-')}) (${formatTime(ch.start_time)} - ${formatTime(ch.end_time)})\n`;
+        md += `${i + 1}. [${ch.title}](#${i + 1}-${ch.title.toLowerCase().replace(/\s+/g, "-")}) (${formatTime(ch.start_time)} - ${formatTime(ch.end_time)})\n`;
       });
-      md += '\n';
+      md += "\n";
 
       chapters.forEach((ch, i) => {
         md += `## ${i + 1}. ${ch.title}\n\n`;
@@ -115,7 +114,7 @@ export function OutputViewer({
         chapterSegments.forEach((seg) => {
           md += `[${formatTime(seg.start_time)}] ${seg.text}\n`;
         });
-        md += '\n';
+        md += "\n";
       });
     } else {
       md += `## Transcript\n\n`;
@@ -130,7 +129,7 @@ export function OutputViewer({
   }, [job, segments, chapters, frames, formatTime]);
 
   const generateSRT = useCallback(() => {
-    let srt = '';
+    let srt = "";
     segments.forEach((seg, index) => {
       const startTime = formatSRTTime(seg.start_time);
       const endTime = formatSRTTime(seg.end_time);
@@ -144,53 +143,63 @@ export function OutputViewer({
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
     const ms = Math.floor((seconds % 1) * 1000);
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')},${ms.toString().padStart(3, '0')}`;
+    return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")},${ms.toString().padStart(3, "0")}`;
   };
 
   const downloadFile = useCallback((content: string, filename: string, type: string) => {
     const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
   }, []);
 
-  const handleExport = useCallback(async (format: ExportFormat) => {
-    setIsExporting(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate processing
+  const handleExport = useCallback(
+    async (format: ExportFormat) => {
+      setIsExporting(true);
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate processing
 
-      const baseName = job.file_name.replace(/\.[^/.]+$/, '');
+        const baseName = job.file_name.replace(/\.[^/.]+$/, "");
 
-      switch (format) {
-        case 'markdown':
-          downloadFile(generateMarkdown(), `${baseName}.md`, 'text/markdown');
-          break;
-        case 'json':
-          const jsonData = { job, segments, chapters, frames: frames.map(f => ({ ...f, image_data: [] })) };
-          downloadFile(JSON.stringify(jsonData, null, 2), `${baseName}.json`, 'application/json');
-          break;
-        case 'txt':
-          const txtContent = segments.map(s => `[${formatTime(s.start_time)}] ${s.text}`).join('\n');
-          downloadFile(txtContent, `${baseName}.txt`, 'text/plain');
-          break;
-        case 'srt':
-          downloadFile(generateSRT(), `${baseName}.srt`, 'text/plain');
-          break;
+        switch (format) {
+          case "markdown":
+            downloadFile(generateMarkdown(), `${baseName}.md`, "text/markdown");
+            break;
+          case "json":
+            const jsonData = {
+              job,
+              segments,
+              chapters,
+              frames: frames.map((f) => ({ ...f, image_data: [] })),
+            };
+            downloadFile(JSON.stringify(jsonData, null, 2), `${baseName}.json`, "application/json");
+            break;
+          case "txt":
+            const txtContent = segments
+              .map((s) => `[${formatTime(s.start_time)}] ${s.text}`)
+              .join("\n");
+            downloadFile(txtContent, `${baseName}.txt`, "text/plain");
+            break;
+          case "srt":
+            downloadFile(generateSRT(), `${baseName}.srt`, "text/plain");
+            break;
+        }
+      } finally {
+        setIsExporting(false);
       }
-    } finally {
-      setIsExporting(false);
-    }
-  }, [job, segments, chapters, frames, generateMarkdown, generateSRT, formatTime, downloadFile]);
+    },
+    [job, segments, chapters, frames, generateMarkdown, generateSRT, formatTime, downloadFile],
+  );
 
   const handlePptxExport = useCallback(async () => {
-    setPptxProgress({ isExporting: true, progress: 0, message: 'Initializing...' });
+    setPptxProgress({ isExporting: true, progress: 0, message: "Initializing..." });
 
     try {
       // 动态导入 PPTX 导出模块
-      const { createPptxExporter } = await import('@/app/lib/export');
+      const { createPptxExporter } = await import("@/app/lib/export");
 
       const exporter = createPptxExporter({
         title: job.file_name,
@@ -212,14 +221,14 @@ export function OutputViewer({
         job.file_name,
         chapters,
         segments,
-        frames.filter(f => f.image_data && f.image_data.length > 0), // 只包含有图片数据的帧
+        frames.filter((f) => f.image_data && f.image_data.length > 0), // 只包含有图片数据的帧
       );
 
       if (result.success) {
         setPptxProgress({
           isExporting: false,
           progress: 100,
-          message: 'PPTX generated successfully!',
+          message: "PPTX generated successfully!",
           slideCount: result.slideCount,
         });
 
@@ -228,30 +237,30 @@ export function OutputViewer({
 
         // 3秒后重置状态
         setTimeout(() => {
-          setPptxProgress({ isExporting: false, progress: 0, message: '' });
+          setPptxProgress({ isExporting: false, progress: 0, message: "" });
         }, 3000);
       } else {
         setPptxProgress({
           isExporting: false,
           progress: 0,
-          message: result.error || 'Export failed',
+          message: result.error || "Export failed",
         });
 
         // 显示错误
         setTimeout(() => {
-          setPptxProgress({ isExporting: false, progress: 0, message: '' });
+          setPptxProgress({ isExporting: false, progress: 0, message: "" });
         }, 3000);
       }
     } catch (error) {
-      console.error('PPTX export error:', error);
+      console.error("PPTX export error:", error);
       setPptxProgress({
         isExporting: false,
         progress: 0,
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: error instanceof Error ? error.message : "Unknown error",
       });
 
       setTimeout(() => {
-        setPptxProgress({ isExporting: false, progress: 0, message: '' });
+        setPptxProgress({ isExporting: false, progress: 0, message: "" });
       }, 3000);
     }
   }, [job, segments, chapters, frames]);
@@ -266,7 +275,7 @@ export function OutputViewer({
   const calculateStatistics = useCallback(() => {
     const totalWords = segments.reduce((acc, seg) => acc + seg.text.split(/\s+/).length, 0);
     const avgConfidence = segments.reduce((acc, seg) => acc + seg.confidence, 0) / segments.length;
-    const wordsPerMinute = segments.length > 0 ? (totalWords / (job.duration / 60)) : 0;
+    const wordsPerMinute = segments.length > 0 ? totalWords / (job.duration / 60) : 0;
 
     return {
       totalWords,
@@ -295,7 +304,8 @@ export function OutputViewer({
                 Processing Complete!
               </h3>
               <p className="text-green-600 dark:text-green-300 text-sm">
-                {segments.length} segments &bull; {frames.length} frames &bull; {chapters.length} chapters
+                {segments.length} segments &bull; {frames.length} frames &bull; {chapters.length}{" "}
+                chapters
               </p>
             </div>
           </div>
@@ -312,15 +322,15 @@ export function OutputViewer({
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3">
         <button
-          onClick={() => handleExport('markdown')}
+          onClick={() => handleExport("markdown")}
           disabled={isExporting}
           className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Download className="w-4 h-4" />
-          {isExporting ? 'Exporting...' : 'Markdown'}
+          {isExporting ? "Exporting..." : "Markdown"}
         </button>
         <button
-          onClick={() => handleExport('json')}
+          onClick={() => handleExport("json")}
           disabled={isExporting}
           className="flex items-center gap-2 px-4 py-2.5 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -328,7 +338,7 @@ export function OutputViewer({
           JSON
         </button>
         <button
-          onClick={() => handleExport('srt')}
+          onClick={() => handleExport("srt")}
           disabled={isExporting}
           className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -336,7 +346,7 @@ export function OutputViewer({
           SRT
         </button>
         <button
-          onClick={() => handleExport('txt')}
+          onClick={() => handleExport("txt")}
           disabled={isExporting}
           className="flex items-center gap-2 px-4 py-2.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -351,7 +361,7 @@ export function OutputViewer({
           {pptxProgress.isExporting ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              {pptxProgress.progress > 0 ? `${pptxProgress.progress}%` : 'Exporting...'}
+              {pptxProgress.progress > 0 ? `${pptxProgress.progress}%` : "Exporting..."}
             </>
           ) : (
             <>
@@ -401,7 +411,9 @@ export function OutputViewer({
             />
           </div>
           {pptxProgress.message && (
-            <p className="text-xs text-orange-600 dark:text-orange-300 mt-2">{pptxProgress.message}</p>
+            <p className="text-xs text-orange-600 dark:text-orange-300 mt-2">
+              {pptxProgress.message}
+            </p>
           )}
         </div>
       )}
@@ -427,44 +439,44 @@ export function OutputViewer({
       <div className="border-b border-gray-200 dark:border-gray-700">
         <div className="flex overflow-x-auto">
           <button
-            onClick={() => setViewMode('preview')}
+            onClick={() => setViewMode("preview")}
             className={`px-4 py-3 font-medium text-sm whitespace-nowrap transition-colors border-b-2 ${
-              viewMode === 'preview'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              viewMode === "preview"
+                ? "border-blue-600 text-blue-600 dark:text-blue-400"
+                : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
           >
             <Eye className="w-4 h-4 inline mr-2" />
             Preview
           </button>
           <button
-            onClick={() => setViewMode('markdown')}
+            onClick={() => setViewMode("markdown")}
             className={`px-4 py-3 font-medium text-sm whitespace-nowrap transition-colors border-b-2 ${
-              viewMode === 'markdown'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              viewMode === "markdown"
+                ? "border-blue-600 text-blue-600 dark:text-blue-400"
+                : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
           >
             <FileText className="w-4 h-4 inline mr-2" />
             Markdown
           </button>
           <button
-            onClick={() => setViewMode('json')}
+            onClick={() => setViewMode("json")}
             className={`px-4 py-3 font-medium text-sm whitespace-nowrap transition-colors border-b-2 ${
-              viewMode === 'json'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              viewMode === "json"
+                ? "border-blue-600 text-blue-600 dark:text-blue-400"
+                : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
           >
             <FileJson className="w-4 h-4 inline mr-2" />
             JSON
           </button>
           <button
-            onClick={() => setViewMode('statistics')}
+            onClick={() => setViewMode("statistics")}
             className={`px-4 py-3 font-medium text-sm whitespace-nowrap transition-colors border-b-2 ${
-              viewMode === 'statistics'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              viewMode === "statistics"
+                ? "border-blue-600 text-blue-600 dark:text-blue-400"
+                : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
           >
             <Settings className="w-4 h-4 inline mr-2" />
@@ -474,8 +486,11 @@ export function OutputViewer({
       </div>
 
       {/* Content Area */}
-      <div ref={contentRef} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {viewMode === 'preview' && (
+      <div
+        ref={contentRef}
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+      >
+        {viewMode === "preview" && (
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {/* Video Info */}
             <div className="p-6 bg-gray-50 dark:bg-gray-900/50">
@@ -486,11 +501,15 @@ export function OutputViewer({
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <p className="text-gray-500 dark:text-gray-400">Duration</p>
-                  <p className="font-medium text-gray-900 dark:text-gray-100">{formatTime(job.duration)}</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">
+                    {formatTime(job.duration)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-gray-500 dark:text-gray-400">Resolution</p>
-                  <p className="font-medium text-gray-900 dark:text-gray-100">{job.width}x{job.height}</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">
+                    {job.width}x{job.height}
+                  </p>
                 </div>
                 <div>
                   <p className="text-gray-500 dark:text-gray-400">Segments</p>
@@ -601,9 +620,7 @@ export function OutputViewer({
                       <span className="text-xs font-mono text-blue-600 dark:text-blue-400 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         [{formatTime(seg.start_time)}]
                       </span>
-                      <p className="text-gray-700 dark:text-gray-300 flex-1">
-                        {seg.text}
-                      </p>
+                      <p className="text-gray-700 dark:text-gray-300 flex-1">{seg.text}</p>
                     </div>
                   ))}
                 </div>
@@ -612,7 +629,7 @@ export function OutputViewer({
           </div>
         )}
 
-        {viewMode === 'markdown' && (
+        {viewMode === "markdown" && (
           <div className="p-6 overflow-x-auto">
             <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 font-mono">
               {generateMarkdown()}
@@ -620,7 +637,7 @@ export function OutputViewer({
           </div>
         )}
 
-        {viewMode === 'json' && (
+        {viewMode === "json" && (
           <div className="p-6 overflow-x-auto">
             <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 font-mono">
               {JSON.stringify({ job, segments, chapters, frameCount: frames.length }, null, 2)}
@@ -628,7 +645,7 @@ export function OutputViewer({
           </div>
         )}
 
-        {viewMode === 'statistics' && (
+        {viewMode === "statistics" && (
           <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
               Processing Statistics
@@ -637,23 +654,33 @@ export function OutputViewer({
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center gap-3 mb-2">
                   <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Words</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Total Words
+                  </span>
                 </div>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.totalWords.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {stats.totalWords.toLocaleString()}
+                </p>
               </div>
 
               <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                 <div className="flex items-center gap-3 mb-2">
                   <Clock className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Words/Minute</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Words/Minute
+                  </span>
                 </div>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.wordsPerMinute.toFixed(1)}</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {stats.wordsPerMinute.toFixed(1)}
+                </p>
               </div>
 
               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                 <div className="flex items-center gap-3 mb-2">
                   <Check className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Avg. Confidence</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Avg. Confidence
+                  </span>
                 </div>
                 <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                   {(stats.avgConfidence * 100).toFixed(1)}%
@@ -663,25 +690,37 @@ export function OutputViewer({
               <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
                 <div className="flex items-center gap-3 mb-2">
                   <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Duration</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Duration
+                  </span>
                 </div>
-                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{formatTime(stats.totalDuration)}</p>
+                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                  {formatTime(stats.totalDuration)}
+                </p>
               </div>
 
               <div className="p-4 bg-pink-50 dark:bg-pink-900/20 rounded-lg border border-pink-200 dark:border-pink-800">
                 <div className="flex items-center gap-3 mb-2">
                   <FileText className="w-5 h-5 text-pink-600 dark:text-pink-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Segments</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Segments
+                  </span>
                 </div>
-                <p className="text-2xl font-bold text-pink-600 dark:text-pink-400">{stats.segmentCount}</p>
+                <p className="text-2xl font-bold text-pink-600 dark:text-pink-400">
+                  {stats.segmentCount}
+                </p>
               </div>
 
               <div className="p-4 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg border border-cyan-200 dark:border-cyan-800">
                 <div className="flex items-center gap-3 mb-2">
                   <Calendar className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Chapters</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Chapters
+                  </span>
                 </div>
-                <p className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{stats.chapterCount}</p>
+                <p className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
+                  {stats.chapterCount}
+                </p>
               </div>
             </div>
           </div>

@@ -2,4 +2,4 @@
  * Settings Module Index
  */
 
-export * from './SettingsDialog';
+export * from "./SettingsDialog";

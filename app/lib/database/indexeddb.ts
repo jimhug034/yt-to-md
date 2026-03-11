@@ -3,7 +3,7 @@
  * Provides persistent storage for video processing jobs and results
  */
 
-import Dexie, { Table, Transaction } from 'dexie';
+import Dexie, { Table, Transaction } from "dexie";
 import {
   JobStatus,
   type VideoJob,
@@ -14,7 +14,7 @@ import {
   type DatabaseStats,
   type JobExportData,
   type ExportOptions,
-} from '../models/types';
+} from "../models/types";
 
 /**
  * Database schema version
@@ -24,7 +24,7 @@ const DB_VERSION = 1;
 /**
  * Database name
  */
-const DB_NAME = 'yt-subtitle-md-db';
+const DB_NAME = "yt-subtitle-md-db";
 
 /**
  * IndexedDB Database Class
@@ -41,10 +41,10 @@ export class VideoDatabase extends Dexie {
 
     // Define database schema
     this.version(DB_VERSION).stores({
-      jobs: 'id, status, createdAt, fileName, sourceUrl',
-      segments: 'id, jobId, startTime, endTime, createdAt',
-      frames: 'id, jobId, timestamp, createdAt, chapterId',
-      chapters: 'id, jobId, startTime, endTime, createdAt',
+      jobs: "id, status, createdAt, fileName, sourceUrl",
+      segments: "id, jobId, startTime, endTime, createdAt",
+      frames: "id, jobId, timestamp, createdAt, chapterId",
+      chapters: "id, jobId, startTime, endTime, createdAt",
     });
   }
 
@@ -55,7 +55,7 @@ export class VideoDatabase extends Dexie {
   /**
    * Create a new job
    */
-  async createJob(job: Omit<VideoJob, 'id' | 'createdAt'>): Promise<VideoJob> {
+  async createJob(job: Omit<VideoJob, "id" | "createdAt">): Promise<VideoJob> {
     const id = this.generateId();
     const newJob: VideoJob = {
       ...job,
@@ -77,15 +77,15 @@ export class VideoDatabase extends Dexie {
    * Get all jobs with optional filtering
    */
   async getJobs(filters?: JobQueryFilters): Promise<VideoJob[]> {
-    let query = this.jobs.orderBy('createdAt').reverse();
+    let query = this.jobs.orderBy("createdAt").reverse();
 
     if (filters?.status) {
-      query = this.jobs.where('status').equals(filters.status);
+      query = this.jobs.where("status").equals(filters.status);
     }
 
     if (filters?.fileName) {
       query = this.jobs.filter((job) =>
-        job.fileName.toLowerCase().includes(filters.fileName!.toLowerCase())
+        job.fileName.toLowerCase().includes(filters.fileName!.toLowerCase()),
       );
     }
 
@@ -119,7 +119,7 @@ export class VideoDatabase extends Dexie {
   /**
    * Update job status
    */
-  async updateJobStatus(id: string, status: VideoJob['status']): Promise<number> {
+  async updateJobStatus(id: string, status: VideoJob["status"]): Promise<number> {
     return await this.jobs.update(id, { status });
   }
 
@@ -144,26 +144,34 @@ export class VideoDatabase extends Dexie {
    * Delete a job and all related data
    */
   async deleteJob(id: string): Promise<void> {
-    await this.transaction('rw', [this.jobs, this.segments, this.frames, this.chapters], async () => {
-      await this.segments.where('jobId').equals(id).delete();
-      await this.frames.where('jobId').equals(id).delete();
-      await this.chapters.where('jobId').equals(id).delete();
-      await this.jobs.delete(id);
-    });
+    await this.transaction(
+      "rw",
+      [this.jobs, this.segments, this.frames, this.chapters],
+      async () => {
+        await this.segments.where("jobId").equals(id).delete();
+        await this.frames.where("jobId").equals(id).delete();
+        await this.chapters.where("jobId").equals(id).delete();
+        await this.jobs.delete(id);
+      },
+    );
   }
 
   /**
    * Bulk delete jobs
    */
   async deleteJobs(ids: string[]): Promise<void> {
-    await this.transaction('rw', [this.jobs, this.segments, this.frames, this.chapters], async () => {
-      for (const id of ids) {
-        await this.segments.where('jobId').equals(id).delete();
-        await this.frames.where('jobId').equals(id).delete();
-        await this.chapters.where('jobId').equals(id).delete();
-        await this.jobs.delete(id);
-      }
-    });
+    await this.transaction(
+      "rw",
+      [this.jobs, this.segments, this.frames, this.chapters],
+      async () => {
+        for (const id of ids) {
+          await this.segments.where("jobId").equals(id).delete();
+          await this.frames.where("jobId").equals(id).delete();
+          await this.chapters.where("jobId").equals(id).delete();
+          await this.jobs.delete(id);
+        }
+      },
+    );
   }
 
   // ============================================
@@ -173,7 +181,9 @@ export class VideoDatabase extends Dexie {
   /**
    * Add a single segment
    */
-  async addSegment(segment: Omit<TranscriptSegment, 'id' | 'createdAt'>): Promise<TranscriptSegment> {
+  async addSegment(
+    segment: Omit<TranscriptSegment, "id" | "createdAt">,
+  ): Promise<TranscriptSegment> {
     const id = this.generateId();
     const newSegment: TranscriptSegment = {
       ...segment,
@@ -187,7 +197,10 @@ export class VideoDatabase extends Dexie {
   /**
    * Bulk add segments for a job
    */
-  async addSegments(jobId: string, segments: Omit<TranscriptSegment, 'id' | 'createdAt' | 'jobId'>[]): Promise<void> {
+  async addSegments(
+    jobId: string,
+    segments: Omit<TranscriptSegment, "id" | "createdAt" | "jobId">[],
+  ): Promise<void> {
     const newSegments: TranscriptSegment[] = segments.map((segment) => ({
       ...segment,
       id: this.generateId(),
@@ -201,18 +214,22 @@ export class VideoDatabase extends Dexie {
    * Get all segments for a job
    */
   async getSegments(jobId: string): Promise<TranscriptSegment[]> {
-    return await this.segments.where('jobId').equals(jobId).sortBy('startTime');
+    return await this.segments.where("jobId").equals(jobId).sortBy("startTime");
   }
 
   /**
    * Get segments in a time range
    */
-  async getSegmentsInRange(jobId: string, startTime: number, endTime: number): Promise<TranscriptSegment[]> {
+  async getSegmentsInRange(
+    jobId: string,
+    startTime: number,
+    endTime: number,
+  ): Promise<TranscriptSegment[]> {
     return await this.segments
-      .where('jobId')
+      .where("jobId")
       .equals(jobId)
       .filter((segment) => segment.startTime >= startTime && segment.endTime <= endTime)
-      .sortBy('startTime');
+      .sortBy("startTime");
   }
 
   /**
@@ -226,14 +243,14 @@ export class VideoDatabase extends Dexie {
    * Delete all segments for a job
    */
   async deleteSegments(jobId: string): Promise<number> {
-    return await this.segments.where('jobId').equals(jobId).delete();
+    return await this.segments.where("jobId").equals(jobId).delete();
   }
 
   /**
    * Get segment count for a job
    */
   async getSegmentCount(jobId: string): Promise<number> {
-    return await this.segments.where('jobId').equals(jobId).count();
+    return await this.segments.where("jobId").equals(jobId).count();
   }
 
   // ============================================
@@ -243,7 +260,7 @@ export class VideoDatabase extends Dexie {
   /**
    * Add a single frame
    */
-  async addFrame(frame: Omit<KeyFrame, 'id' | 'createdAt'>): Promise<KeyFrame> {
+  async addFrame(frame: Omit<KeyFrame, "id" | "createdAt">): Promise<KeyFrame> {
     const id = this.generateId();
     const newFrame: KeyFrame = {
       ...frame,
@@ -257,7 +274,10 @@ export class VideoDatabase extends Dexie {
   /**
    * Bulk add frames for a job
    */
-  async addFrames(jobId: string, frames: Omit<KeyFrame, 'id' | 'createdAt' | 'jobId'>[]): Promise<void> {
+  async addFrames(
+    jobId: string,
+    frames: Omit<KeyFrame, "id" | "createdAt" | "jobId">[],
+  ): Promise<void> {
     const newFrames: KeyFrame[] = frames.map((frame) => ({
       ...frame,
       id: this.generateId(),
@@ -272,7 +292,7 @@ export class VideoDatabase extends Dexie {
    * Get all frames for a job
    */
   async getFrames(jobId: string): Promise<KeyFrame[]> {
-    return await this.frames.where('jobId').equals(jobId).sortBy('timestamp');
+    return await this.frames.where("jobId").equals(jobId).sortBy("timestamp");
   }
 
   /**
@@ -287,17 +307,17 @@ export class VideoDatabase extends Dexie {
    */
   async getFramesInRange(jobId: string, startTime: number, endTime: number): Promise<KeyFrame[]> {
     return await this.frames
-      .where('jobId')
+      .where("jobId")
       .equals(jobId)
       .filter((frame) => frame.timestamp >= startTime && frame.timestamp <= endTime)
-      .sortBy('timestamp');
+      .sortBy("timestamp");
   }
 
   /**
    * Get frames by chapter
    */
   async getFramesByChapter(chapterId: string): Promise<KeyFrame[]> {
-    return await this.frames.where('chapterId').equals(chapterId).sortBy('timestamp');
+    return await this.frames.where("chapterId").equals(chapterId).sortBy("timestamp");
   }
 
   /**
@@ -318,14 +338,14 @@ export class VideoDatabase extends Dexie {
    * Delete all frames for a job
    */
   async deleteFrames(jobId: string): Promise<number> {
-    return await this.frames.where('jobId').equals(jobId).delete();
+    return await this.frames.where("jobId").equals(jobId).delete();
   }
 
   /**
    * Get frame count for a job
    */
   async getFrameCount(jobId: string): Promise<number> {
-    return await this.frames.where('jobId').equals(jobId).count();
+    return await this.frames.where("jobId").equals(jobId).count();
   }
 
   // ============================================
@@ -335,7 +355,7 @@ export class VideoDatabase extends Dexie {
   /**
    * Add a single chapter
    */
-  async addChapter(chapter: Omit<Chapter, 'id' | 'createdAt'>): Promise<Chapter> {
+  async addChapter(chapter: Omit<Chapter, "id" | "createdAt">): Promise<Chapter> {
     const id = this.generateId();
     const newChapter: Chapter = {
       ...chapter,
@@ -349,7 +369,10 @@ export class VideoDatabase extends Dexie {
   /**
    * Bulk add chapters for a job
    */
-  async addChapters(jobId: string, chapters: Omit<Chapter, 'id' | 'createdAt' | 'jobId'>[]): Promise<void> {
+  async addChapters(
+    jobId: string,
+    chapters: Omit<Chapter, "id" | "createdAt" | "jobId">[],
+  ): Promise<void> {
     const newChapters: Chapter[] = chapters.map((chapter) => ({
       ...chapter,
       id: this.generateId(),
@@ -363,7 +386,7 @@ export class VideoDatabase extends Dexie {
    * Get all chapters for a job
    */
   async getChapters(jobId: string): Promise<Chapter[]> {
-    return await this.chapters.where('jobId').equals(jobId).sortBy('startTime');
+    return await this.chapters.where("jobId").equals(jobId).sortBy("startTime");
   }
 
   /**
@@ -391,14 +414,14 @@ export class VideoDatabase extends Dexie {
    * Delete all chapters for a job
    */
   async deleteChapters(jobId: string): Promise<number> {
-    return await this.chapters.where('jobId').equals(jobId).delete();
+    return await this.chapters.where("jobId").equals(jobId).delete();
   }
 
   /**
    * Get chapter count for a job
    */
   async getChapterCount(jobId: string): Promise<number> {
-    return await this.chapters.where('jobId').equals(jobId).count();
+    return await this.chapters.where("jobId").equals(jobId).count();
   }
 
   // ============================================
@@ -440,39 +463,43 @@ export class VideoDatabase extends Dexie {
       status: JobStatus.Pending,
     };
 
-    await this.transaction('rw', [this.jobs, this.segments, this.frames, this.chapters], async () => {
-      await this.jobs.add(clonedJob);
+    await this.transaction(
+      "rw",
+      [this.jobs, this.segments, this.frames, this.chapters],
+      async () => {
+        await this.jobs.add(clonedJob);
 
-      const segmentsToClone = data.segments.map((s) => ({
-        ...s,
-        id: this.generateId(),
-        jobId: newJobId,
-        createdAt: Date.now(),
-      }));
-      if (segmentsToClone.length > 0) {
-        await this.segments.bulkAdd(segmentsToClone);
-      }
+        const segmentsToClone = data.segments.map((s) => ({
+          ...s,
+          id: this.generateId(),
+          jobId: newJobId,
+          createdAt: Date.now(),
+        }));
+        if (segmentsToClone.length > 0) {
+          await this.segments.bulkAdd(segmentsToClone);
+        }
 
-      const framesToClone = data.frames.map((f) => ({
-        ...f,
-        id: this.generateId(),
-        jobId: newJobId,
-        createdAt: Date.now(),
-      }));
-      if (framesToClone.length > 0) {
-        await this.frames.bulkAdd(framesToClone);
-      }
+        const framesToClone = data.frames.map((f) => ({
+          ...f,
+          id: this.generateId(),
+          jobId: newJobId,
+          createdAt: Date.now(),
+        }));
+        if (framesToClone.length > 0) {
+          await this.frames.bulkAdd(framesToClone);
+        }
 
-      const chaptersToClone = data.chapters.map((c) => ({
-        ...c,
-        id: this.generateId(),
-        jobId: newJobId,
-        createdAt: Date.now(),
-      }));
-      if (chaptersToClone.length > 0) {
-        await this.chapters.bulkAdd(chaptersToClone);
-      }
-    });
+        const chaptersToClone = data.chapters.map((c) => ({
+          ...c,
+          id: this.generateId(),
+          jobId: newJobId,
+          createdAt: Date.now(),
+        }));
+        if (chaptersToClone.length > 0) {
+          await this.chapters.bulkAdd(chaptersToClone);
+        }
+      },
+    );
 
     return newJobId;
   }
@@ -487,9 +514,9 @@ export class VideoDatabase extends Dexie {
   async getStats(): Promise<DatabaseStats> {
     const [jobs, completedJobs, failedJobs, pendingJobs] = await Promise.all([
       this.jobs.count(),
-      this.jobs.where('status').equals('completed').count(),
-      this.jobs.where('status').equals('failed').count(),
-      this.jobs.where('status').equals('pending').count(),
+      this.jobs.where("status").equals("completed").count(),
+      this.jobs.where("status").equals("failed").count(),
+      this.jobs.where("status").equals("pending").count(),
     ]);
 
     const segments = await this.segments.count();
@@ -515,7 +542,11 @@ export class VideoDatabase extends Dexie {
    * Estimate storage size (in bytes)
    */
   private async estimateStorageSize(): Promise<number> {
-    if (typeof navigator !== 'undefined' && 'storage' in navigator && 'estimate' in navigator.storage) {
+    if (
+      typeof navigator !== "undefined" &&
+      "storage" in navigator &&
+      "estimate" in navigator.storage
+    ) {
       try {
         const estimate = await navigator.storage.estimate();
         return estimate.usage || 0;
@@ -558,12 +589,16 @@ export class VideoDatabase extends Dexie {
    * Clear all data from database
    */
   async clearAll(): Promise<void> {
-    await this.transaction('rw', [this.jobs, this.segments, this.frames, this.chapters], async () => {
-      await this.jobs.clear();
-      await this.segments.clear();
-      await this.frames.clear();
-      await this.chapters.clear();
-    });
+    await this.transaction(
+      "rw",
+      [this.jobs, this.segments, this.frames, this.chapters],
+      async () => {
+        await this.jobs.clear();
+        await this.segments.clear();
+        await this.frames.clear();
+        await this.chapters.clear();
+      },
+    );
   }
 
   /**
@@ -571,8 +606,8 @@ export class VideoDatabase extends Dexie {
    */
   async clearOldJobs(daysOld: number = 30): Promise<number> {
     const cutoffDate = Date.now() - daysOld * 24 * 60 * 60 * 1000;
-    const oldJobs = await this.jobs.where('createdAt').below(cutoffDate).toArray();
-    const jobIds = oldJobs.map(job => job.id);
+    const oldJobs = await this.jobs.where("createdAt").below(cutoffDate).toArray();
+    const jobIds = oldJobs.map((job) => job.id);
     await this.deleteJobs(jobIds);
     return jobIds.length;
   }
@@ -581,7 +616,7 @@ export class VideoDatabase extends Dexie {
    * Export database to JSON
    */
   async exportDatabase(jobIds?: string[]): Promise<JobExportData[]> {
-    const jobs = jobIds || (await this.jobs.toArray()).map(job => job.id);
+    const jobs = jobIds || (await this.jobs.toArray()).map((job) => job.id);
     const exports: JobExportData[] = [];
 
     for (const jobId of jobs) {
@@ -593,7 +628,7 @@ export class VideoDatabase extends Dexie {
           frames: data.frames,
           chapters: data.chapters,
           exportedAt: Date.now(),
-          version: '1.0.0',
+          version: "1.0.0",
         });
       }
     }
@@ -607,51 +642,55 @@ export class VideoDatabase extends Dexie {
   async importDatabase(data: JobExportData[]): Promise<number> {
     let importedCount = 0;
 
-    await this.transaction('rw', [this.jobs, this.segments, this.frames, this.chapters], async () => {
-      for (const item of data) {
-        // Generate new IDs to avoid conflicts
-        const newJobId = this.generateId();
-        const job: VideoJob = {
-          ...item.job,
-          id: newJobId,
-          createdAt: Date.now(),
-        };
+    await this.transaction(
+      "rw",
+      [this.jobs, this.segments, this.frames, this.chapters],
+      async () => {
+        for (const item of data) {
+          // Generate new IDs to avoid conflicts
+          const newJobId = this.generateId();
+          const job: VideoJob = {
+            ...item.job,
+            id: newJobId,
+            createdAt: Date.now(),
+          };
 
-        await this.jobs.add(job);
+          await this.jobs.add(job);
 
-        const segments = item.segments.map((s) => ({
-          ...s,
-          id: this.generateId(),
-          jobId: newJobId,
-          createdAt: Date.now(),
-        }));
-        if (segments.length > 0) {
-          await this.segments.bulkAdd(segments);
+          const segments = item.segments.map((s) => ({
+            ...s,
+            id: this.generateId(),
+            jobId: newJobId,
+            createdAt: Date.now(),
+          }));
+          if (segments.length > 0) {
+            await this.segments.bulkAdd(segments);
+          }
+
+          const frames = item.frames.map((f) => ({
+            ...f,
+            id: this.generateId(),
+            jobId: newJobId,
+            createdAt: Date.now(),
+          }));
+          if (frames.length > 0) {
+            await this.frames.bulkAdd(frames);
+          }
+
+          const chapters = item.chapters.map((c) => ({
+            ...c,
+            id: this.generateId(),
+            jobId: newJobId,
+            createdAt: Date.now(),
+          }));
+          if (chapters.length > 0) {
+            await this.chapters.bulkAdd(chapters);
+          }
+
+          importedCount++;
         }
-
-        const frames = item.frames.map((f) => ({
-          ...f,
-          id: this.generateId(),
-          jobId: newJobId,
-          createdAt: Date.now(),
-        }));
-        if (frames.length > 0) {
-          await this.frames.bulkAdd(frames);
-        }
-
-        const chapters = item.chapters.map((c) => ({
-          ...c,
-          id: this.generateId(),
-          jobId: newJobId,
-          createdAt: Date.now(),
-        }));
-        if (chapters.length > 0) {
-          await this.chapters.bulkAdd(chapters);
-        }
-
-        importedCount++;
-      }
-    });
+      },
+    );
 
     return importedCount;
   }

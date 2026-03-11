@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
-import Link from 'next/link';
-import { VideoProcessor } from '@/app/components/video/VideoProcessor';
-import { SettingsButton } from '@/app/components/settings';
-import { CompactJobList } from '@/app/components/jobs';
-import type { Settings } from '@/app/components/settings';
-import type { VideoJob } from '@/app/lib/wasm';
-import { Film, Menu, X, Home } from 'lucide-react';
+import { useState, useCallback } from "react";
+import Link from "next/link";
+import { VideoProcessor } from "@/app/components/video/VideoProcessor";
+import { SettingsButton } from "@/app/components/settings";
+import { CompactJobList } from "@/app/components/jobs";
+import type { Settings } from "@/app/components/settings";
+import type { VideoJob } from "@/app/lib/wasm";
+import { Film, Menu, X, Home } from "lucide-react";
 
 export default function VideoPage() {
   const [settings, setSettings] = useState<Partial<Settings>>({});
@@ -73,14 +73,11 @@ export default function VideoPage() {
         {/* Sidebar - Job History */}
         <aside
           className={`fixed lg:sticky top-16 left-0 z-30 h-[calc(100vh-4rem)] w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out overflow-y-auto ${
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }`}
         >
           <div className="p-4">
-            <CompactJobList
-              onSelectJob={handleSelectJob}
-              currentJobId={selectedJob?.id}
-            />
+            <CompactJobList onSelectJob={handleSelectJob} currentJobId={selectedJob?.id} />
           </div>
         </aside>
 

@@ -29,7 +29,7 @@ class AudioExtractorClass {
    * 初始化音频上下文
    */
   private ensureAudioContext(): AudioContext {
-    if (!this.audioContext || this.audioContext.state === 'closed') {
+    if (!this.audioContext || this.audioContext.state === "closed") {
       this.audioContext = new AudioContext({
         sampleRate: 16000, // Whisper 要求 16kHz
       });
@@ -42,12 +42,9 @@ class AudioExtractorClass {
    */
   async extractFromVideo(
     videoElement: HTMLVideoElement,
-    options: AudioExtractOptions = {}
+    options: AudioExtractOptions = {},
   ): Promise<AudioExtractResult> {
-    const {
-      startTime = 0,
-      duration,
-    } = options;
+    const { startTime = 0, duration } = options;
 
     const audioContext = this.ensureAudioContext();
 
@@ -59,22 +56,22 @@ class AudioExtractorClass {
       if (videoElement.readyState >= 2) {
         resolve();
       } else {
-        videoElement.addEventListener('canplay', () => resolve(), { once: true });
+        videoElement.addEventListener("canplay", () => resolve(), { once: true });
       }
     });
 
     // 使用 MediaRecorder 录制音频
-    const stream = (videoElement as any).captureStream?.() ||
-                  (videoElement as any).mozCaptureStream?.();
+    const stream =
+      (videoElement as any).captureStream?.() || (videoElement as any).mozCaptureStream?.();
 
     if (!stream) {
-      throw new Error('Video element does not support stream capture');
+      throw new Error("Video element does not support stream capture");
     }
 
     // 获取音频轨道
     const audioTracks = stream.getAudioTracks();
     if (audioTracks.length === 0) {
-      throw new Error('No audio track found in video');
+      throw new Error("No audio track found in video");
     }
 
     // 创建仅包含音频的流
@@ -125,7 +122,7 @@ class AudioExtractorClass {
       // 如果指定了持续时间，在指定时间后停止
       if (duration !== undefined) {
         setTimeout(() => {
-          if (this.mediaRecorder?.state === 'recording') {
+          if (this.mediaRecorder?.state === "recording") {
             this.mediaRecorder.stop();
             videoElement.pause();
           }
@@ -133,7 +130,7 @@ class AudioExtractorClass {
       } else {
         // 如果没有指定持续时间，等到视频结束
         videoElement.onended = () => {
-          if (this.mediaRecorder?.state === 'recording') {
+          if (this.mediaRecorder?.state === "recording") {
             this.mediaRecorder.stop();
           }
         };
@@ -146,7 +143,7 @@ class AudioExtractorClass {
    */
   async extractFromVideoUrl(
     videoUrl: string,
-    options: AudioExtractOptions = {}
+    options: AudioExtractOptions = {},
   ): Promise<Float32Array> {
     const response = await fetch(videoUrl);
     if (!response.ok) {
@@ -160,10 +157,7 @@ class AudioExtractorClass {
   /**
    * 从 Blob 提取音频
    */
-  async extractFromBlob(
-    blob: Blob,
-    options: AudioExtractOptions = {}
-  ): Promise<Float32Array> {
+  async extractFromBlob(blob: Blob, options: AudioExtractOptions = {}): Promise<Float32Array> {
     const audioContext = this.ensureAudioContext();
 
     const arrayBuffer = await blob.arrayBuffer();
@@ -202,12 +196,12 @@ class AudioExtractorClass {
    */
   private getSupportedMimeType(): string {
     const types = [
-      'audio/webm;codecs=opus',
-      'audio/webm',
-      'audio/ogg;codecs=opus',
-      'audio/ogg',
-      'audio/mp4',
-      'audio/mpeg',
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/ogg;codecs=opus",
+      "audio/ogg",
+      "audio/mp4",
+      "audio/mpeg",
     ];
 
     for (const type of types) {
@@ -216,14 +210,14 @@ class AudioExtractorClass {
       }
     }
 
-    return ''; // 使用默认类型
+    return ""; // 使用默认类型
   }
 
   /**
    * 取消当前提取
    */
   cancel(): void {
-    if (this.mediaRecorder?.state === 'recording') {
+    if (this.mediaRecorder?.state === "recording") {
       this.mediaRecorder.stop();
     }
     this.audioChunks = [];
@@ -234,7 +228,7 @@ class AudioExtractorClass {
    */
   release(): void {
     this.cancel();
-    if (this.audioContext?.state !== 'closed') {
+    if (this.audioContext?.state !== "closed") {
       this.audioContext?.close();
     }
     this.audioContext = null;

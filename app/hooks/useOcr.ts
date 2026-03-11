@@ -5,22 +5,16 @@
  * 提供状态管理和识别方法
  */
 
-'use client';
+"use client";
 
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { OcrManager } from '../lib/ocr';
-import type {
-  OcrState,
-  OcrProgress,
-  FrameInput,
-} from '../lib/ocr';
-import type {
-  OcrWorkerOptions,
-} from '../workers/ocr.worker';
+import { useState, useCallback, useEffect, useRef } from "react";
+import { OcrManager } from "../lib/ocr";
+import type { OcrState, OcrProgress, FrameInput } from "../lib/ocr";
+import type { OcrWorkerOptions } from "../workers/ocr.worker";
 
 export interface UseOcrOptions {
   autoLoad?: boolean; // 是否自动加载模型
-  language?: OcrWorkerOptions['language'];
+  language?: OcrWorkerOptions["language"];
 }
 
 export interface UseOcrReturn {
@@ -40,13 +34,13 @@ export interface UseOcrReturn {
     frame: FrameInput,
     options?: OcrWorkerOptions & {
       onProgress?: (progress: OcrProgress) => void;
-    }
+    },
   ) => Promise<{ text: string; confidence: number; timestamp?: number }>;
   recognizeBatch: (
     frames: FrameInput[],
     options?: OcrWorkerOptions & {
       onProgress?: (progress: OcrProgress) => void;
-    }
+    },
   ) => Promise<Array<{ text: string; confidence: number; timestamp?: number }>>;
   cancel: () => Promise<void>;
   reset: () => void;
@@ -107,7 +101,7 @@ export function useOcr(options: UseOcrOptions = {}): UseOcrReturn {
       frame: FrameInput,
       recognizeOptions?: OcrWorkerOptions & {
         onProgress?: (progress: OcrProgress) => void;
-      }
+      },
     ) => {
       try {
         const response = await OcrManager.recognizeFrame(frame, {
@@ -121,7 +115,7 @@ export function useOcr(options: UseOcrOptions = {}): UseOcrReturn {
         throw error;
       }
     },
-    [language]
+    [language],
   );
 
   // 批量识别
@@ -130,7 +124,7 @@ export function useOcr(options: UseOcrOptions = {}): UseOcrReturn {
       frames: FrameInput[],
       recognizeOptions?: OcrWorkerOptions & {
         onProgress?: (progress: OcrProgress) => void;
-      }
+      },
     ) => {
       try {
         const response = await OcrManager.recognizeBatch(frames, {
@@ -144,7 +138,7 @@ export function useOcr(options: UseOcrOptions = {}): UseOcrReturn {
         throw error;
       }
     },
-    [language]
+    [language],
   );
 
   // 取消

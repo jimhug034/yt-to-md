@@ -17,15 +17,15 @@ wasm-bindgen-futures = "0.4"
 [dependencies.web-sys]
 version = "0.3"
 features = [
-    "HtmlVideoElement",
-    "HtmlCanvasElement",
-    "CanvasRenderingContext2d",
-    "AudioContext",
-    "AudioBuffer",
-    "Blob",
-    "File",
-    "Storage",
-    "Window",
+  "HtmlVideoElement",
+  "HtmlCanvasElement",
+  "CanvasRenderingContext2d",
+  "AudioContext",
+  "AudioBuffer",
+  "Blob",
+  "File",
+  "Storage",
+  "Window",
 ]
 
 # 时间处理 - WASM 兼容配置

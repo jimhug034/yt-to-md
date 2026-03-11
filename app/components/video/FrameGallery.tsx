@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useEffect, useRef } from 'react';
-import type { KeyFrame } from '@/app/lib/wasm';
-import { Image as ImageIcon, Maximize2, Download, Search, Grid3x3, List, X } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from "react";
+import type { KeyFrame } from "@/app/lib/wasm";
+import { Image as ImageIcon, Maximize2, Download, Search, Grid3x3, List, X } from "lucide-react";
 
 interface FrameGalleryProps {
   frames: KeyFrame[];
   isProcessing?: boolean;
 }
 
-type ViewMode = 'grid' | 'list';
+type ViewMode = "grid" | "list";
 
 export function FrameGallery({ frames, isProcessing = false }: FrameGalleryProps) {
   const [selectedFrame, setSelectedFrame] = useState<KeyFrame | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [searchQuery, setSearchQuery] = useState("");
   const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
 
   const formatTime = useCallback((seconds: number) => {
@@ -23,50 +23,56 @@ export function FrameGallery({ frames, isProcessing = false }: FrameGalleryProps
     const secs = Math.floor(seconds % 60);
 
     if (hours > 0) {
-      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      return `${hours}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
     }
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }, []);
 
-  const createImageUrl = useCallback((frame: KeyFrame) => {
-    if (imageUrls.has(frame.id)) {
-      return imageUrls.get(frame.id)!;
-    }
+  const createImageUrl = useCallback(
+    (frame: KeyFrame) => {
+      if (imageUrls.has(frame.id)) {
+        return imageUrls.get(frame.id)!;
+      }
 
-    if (frame.image_data && frame.image_data.length > 0) {
-      const uint8Array = new Uint8Array(frame.image_data);
-      const blob = new Blob([uint8Array], { type: 'image/jpeg' });
-      const url = URL.createObjectURL(blob);
-      setImageUrls(prev => new Map(prev).set(frame.id, url));
-      return url;
-    }
-    return null;
-  }, [imageUrls]);
+      if (frame.image_data && frame.image_data.length > 0) {
+        const uint8Array = new Uint8Array(frame.image_data);
+        const blob = new Blob([uint8Array], { type: "image/jpeg" });
+        const url = URL.createObjectURL(blob);
+        setImageUrls((prev) => new Map(prev).set(frame.id, url));
+        return url;
+      }
+      return null;
+    },
+    [imageUrls],
+  );
 
   // Cleanup object URLs on unmount
   useEffect(() => {
     return () => {
-      imageUrls.forEach(url => URL.revokeObjectURL(url));
+      imageUrls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [imageUrls]);
 
-  const filteredFrames = frames.filter(frame => {
+  const filteredFrames = frames.filter((frame) => {
     if (!searchQuery.trim()) return true;
     const timeStr = formatTime(frame.timestamp);
-    const ocrText = frame.ocr_text?.toLowerCase() || '';
+    const ocrText = frame.ocr_text?.toLowerCase() || "";
     const query = searchQuery.toLowerCase();
     return timeStr.includes(query) || ocrText.includes(query);
   });
 
-  const downloadFrame = useCallback((frame: KeyFrame) => {
-    const url = createImageUrl(frame);
-    if (url) {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `frame-${formatTime(frame.timestamp)}.jpg`;
-      a.click();
-    }
-  }, [createImageUrl, formatTime]);
+  const downloadFrame = useCallback(
+    (frame: KeyFrame) => {
+      const url = createImageUrl(frame);
+      if (url) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `frame-${formatTime(frame.timestamp)}.jpg`;
+        a.click();
+      }
+    },
+    [createImageUrl, formatTime],
+  );
 
   const downloadAllFrames = useCallback(() => {
     // In a real app, this would create a ZIP file
@@ -89,8 +95,8 @@ export function FrameGallery({ frames, isProcessing = false }: FrameGalleryProps
                 Key Frames
               </h2>
               <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
-                {frames.length} {frames.length === 1 ? 'frame' : 'frames'} extracted
-                {isProcessing && ' (processing...)'}
+                {frames.length} {frames.length === 1 ? "frame" : "frames"} extracted
+                {isProcessing && " (processing...)"}
               </p>
             </div>
           </div>
@@ -100,22 +106,22 @@ export function FrameGallery({ frames, isProcessing = false }: FrameGalleryProps
             {/* View Mode Toggle */}
             <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
               <button
-                onClick={() => setViewMode('grid')}
+                onClick={() => setViewMode("grid")}
                 className={`p-2 transition-colors ${
-                  viewMode === 'grid'
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-                    : 'bg-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  viewMode === "grid"
+                    ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    : "bg-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800"
                 }`}
                 aria-label="Grid view"
               >
                 <Grid3x3 className="w-4 h-4" />
               </button>
               <button
-                onClick={() => setViewMode('list')}
+                onClick={() => setViewMode("list")}
                 className={`p-2 transition-colors ${
-                  viewMode === 'list'
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-                    : 'bg-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  viewMode === "list"
+                    ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    : "bg-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800"
                 }`}
                 aria-label="List view"
               >
@@ -161,13 +167,13 @@ export function FrameGallery({ frames, isProcessing = false }: FrameGalleryProps
             )}
           </div>
           <p className="text-gray-500 dark:text-gray-400 font-medium">
-            {isProcessing ? 'Extracting frames...' : 'No frames extracted yet'}
+            {isProcessing ? "Extracting frames..." : "No frames extracted yet"}
           </p>
         </div>
       ) : (
         <>
           {/* Grid View */}
-          {viewMode === 'grid' && (
+          {viewMode === "grid" && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 p-4 md:p-6">
               {filteredFrames.map((frame) => {
                 const imageUrl = createImageUrl(frame);
@@ -227,7 +233,7 @@ export function FrameGallery({ frames, isProcessing = false }: FrameGalleryProps
           )}
 
           {/* List View */}
-          {viewMode === 'list' && (
+          {viewMode === "list" && (
             <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-96 overflow-y-auto">
               {filteredFrames.map((frame) => {
                 const imageUrl = createImageUrl(frame);
@@ -299,10 +305,7 @@ export function FrameGallery({ frames, isProcessing = false }: FrameGalleryProps
             <X className="w-6 h-6" />
           </button>
 
-          <div
-            className="relative max-w-5xl max-h-full"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="relative max-w-5xl max-h-full" onClick={(e) => e.stopPropagation()}>
             {(() => {
               const imageUrl = createImageUrl(selectedFrame);
               return imageUrl ? (
@@ -321,9 +324,7 @@ export function FrameGallery({ frames, isProcessing = false }: FrameGalleryProps
                     {formatTime(selectedFrame.timestamp)}
                   </p>
                   {selectedFrame.ocr_text && (
-                    <p className="text-white/80 text-sm mt-1 max-w-2xl">
-                      {selectedFrame.ocr_text}
-                    </p>
+                    <p className="text-white/80 text-sm mt-1 max-w-2xl">{selectedFrame.ocr_text}</p>
                   )}
                 </div>
                 <button

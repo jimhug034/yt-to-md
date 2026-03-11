@@ -3,17 +3,17 @@
  * 处理图像文字识别任务
  */
 
-import { getPaddleOCRModel } from '../lib/models/paddleocr';
+import { getPaddleOCRModel } from "../lib/models/paddleocr";
 
 export interface OcrProcessorMessage {
-  type: 'recognize' | 'recognizeBatch' | 'loadModel';
+  type: "recognize" | "recognizeBatch" | "loadModel";
   images?: Array<{ imageData: number[]; width: number; height: number }>;
   imageUrl?: string;
   language?: string;
 }
 
 export interface OcrProcessorResponse {
-  type: 'progress' | 'result' | 'batchResult' | 'error';
+  type: "progress" | "result" | "batchResult" | "error";
   progress?: number;
   result?: string;
   results?: string[];
@@ -27,27 +27,27 @@ self.onmessage = async (e: MessageEvent<OcrProcessorMessage>) => {
 
   try {
     switch (message.type) {
-      case 'loadModel': {
+      case "loadModel": {
         await loadModel(message);
         break;
       }
-      case 'recognize': {
+      case "recognize": {
         await recognizeImage(message);
         break;
       }
-      case 'recognizeBatch': {
+      case "recognizeBatch": {
         await recognizeBatch(message);
         break;
       }
       default:
         self.postMessage({
-          type: 'error',
+          type: "error",
           error: `Unknown message type: ${message.type}`,
         } as OcrProcessorResponse);
     }
   } catch (error) {
     self.postMessage({
-      type: 'error',
+      type: "error",
       error: error instanceof Error ? error.message : String(error),
     } as OcrProcessorResponse);
   }
@@ -59,17 +59,17 @@ async function loadModel(message: OcrProcessorMessage) {
 
     ocrModel.onProgress((progress: number) => {
       self.postMessage({
-        type: 'progress',
+        type: "progress",
         progress,
       } as OcrProcessorResponse);
     });
 
-    await ocrModel.load({ language: message.language || 'en' });
+    await ocrModel.load({ language: message.language || "en" });
   }
 
   self.postMessage({
-    type: 'result',
-    result: 'Model loaded',
+    type: "result",
+    result: "Model loaded",
   } as OcrProcessorResponse);
 }
 
@@ -81,28 +81,24 @@ async function recognizeImage(message: OcrProcessorMessage) {
   if (images && images.length > 0) {
     // 从 imageData 创建 ImageData 对象
     const img = images[0];
-    imageSource = new ImageData(
-      new Uint8ClampedArray(img.imageData),
-      img.width,
-      img.height
-    );
+    imageSource = new ImageData(new Uint8ClampedArray(img.imageData), img.width, img.height);
   } else if (imageUrl) {
     imageSource = imageUrl;
   } else {
-    throw new Error('No image data provided');
+    throw new Error("No image data provided");
   }
 
-  let result = '';
+  let result = "";
 
   if (ocrModel) {
     const ocrResult = await ocrModel.recognize(imageSource as ImageData | Blob);
     result = ocrResult.text;
   } else {
-    throw new Error('OCR model not loaded. Please call loadModel first.');
+    throw new Error("OCR model not loaded. Please call loadModel first.");
   }
 
   self.postMessage({
-    type: 'result',
+    type: "result",
     result,
   } as OcrProcessorResponse);
 }
@@ -111,38 +107,33 @@ async function recognizeBatch(message: OcrProcessorMessage) {
   const { images } = message;
 
   if (!images || images.length === 0) {
-    throw new Error('No images provided');
+    throw new Error("No images provided");
   }
 
   const results: string[] = [];
 
   for (let i = 0; i < images.length; i++) {
     const img = images[i];
-    const imageData = new ImageData(
-      new Uint8ClampedArray(img.imageData),
-      img.width,
-      img.height
-    );
+    const imageData = new ImageData(new Uint8ClampedArray(img.imageData), img.width, img.height);
 
-    let result = '';
+    let result = "";
     if (ocrModel) {
       const ocrResult = await ocrModel.recognize(imageData);
       result = ocrResult.text;
     } else {
-      throw new Error('OCR model not loaded. Please call loadModel first.');
+      throw new Error("OCR model not loaded. Please call loadModel first.");
     }
 
     results.push(result);
 
     self.postMessage({
-      type: 'progress',
+      type: "progress",
       progress: ((i + 1) / images.length) * 100,
     } as OcrProcessorResponse);
   }
 
   self.postMessage({
-    type: 'batchResult',
+    type: "batchResult",
     results,
   } as OcrProcessorResponse);
 }
-

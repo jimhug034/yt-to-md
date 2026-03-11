@@ -2,4 +2,4 @@
  * OCR Module Index
  */
 
-export * from './manager';
+export * from "./manager";

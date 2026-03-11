@@ -3,7 +3,7 @@
  * 使用 @xenova/transformers 进行语音转文字
  */
 
-import { env } from '@xenova/transformers';
+import { env } from "@xenova/transformers";
 
 // 配置 Transformers.js
 env.allowLocalModels = false;
@@ -14,23 +14,29 @@ env.useBrowserCache = true;
 // ============================================
 
 export type WhisperWorkerMessage =
-  | { type: 'loadModel'; options?: WhisperWorkerOptions; _id: number }
-  | { type: 'transcribe'; audioData?: number[]; audioBlob?: Blob; options?: WhisperWorkerOptions; _id: number }
-  | { type: 'getStatus'; _id: number }
-  | { type: 'cancel'; _id: number }
-  | { type: 'abort'; _id: number };
+  | { type: "loadModel"; options?: WhisperWorkerOptions; _id: number }
+  | {
+      type: "transcribe";
+      audioData?: number[];
+      audioBlob?: Blob;
+      options?: WhisperWorkerOptions;
+      _id: number;
+    }
+  | { type: "getStatus"; _id: number }
+  | { type: "cancel"; _id: number }
+  | { type: "abort"; _id: number };
 
 export type WhisperWorkerResponse =
-  | { type: 'progress'; progress: number; stage: string; _id: number }
-  | { type: 'complete'; result: WhisperResult; segments: WhisperSegment[]; _id: number }
-  | { type: 'status'; isModelLoaded: boolean; isProcessing: boolean; _id: number }
-  | { type: 'error'; error: string; _id: number }
-  | { type: 'aborted'; _id: number };
+  | { type: "progress"; progress: number; stage: string; _id: number }
+  | { type: "complete"; result: WhisperResult; segments: WhisperSegment[]; _id: number }
+  | { type: "status"; isModelLoaded: boolean; isProcessing: boolean; _id: number }
+  | { type: "error"; error: string; _id: number }
+  | { type: "aborted"; _id: number };
 
 export interface WhisperWorkerOptions {
-  model?: 'tiny' | 'base' | 'small' | 'medium' | 'large';
+  model?: "tiny" | "base" | "small" | "medium" | "large";
   language?: string;
-  task?: 'automatic-speech-recognition' | 'automatic-speech-translation';
+  task?: "automatic-speech-recognition" | "automatic-speech-translation";
   chunkLengthS?: number;
   strideLengthS?: number;
 }
@@ -52,7 +58,7 @@ export interface WhisperResult {
 // ============================================
 
 let transcriber: any = null;
-let modelSize: string = 'tiny';
+let modelSize: string = "tiny";
 let isModelLoaded: boolean = false;
 let isProcessing: boolean = false;
 let pendingJobs: Map<number, any> = new Map();
@@ -64,45 +70,44 @@ let pendingJobs: Map<number, any> = new Map();
 async function loadModel(options: WhisperWorkerOptions = {}) {
   if (isModelLoaded) return;
 
-  modelSize = options.model || 'tiny';
+  modelSize = options.model || "tiny";
   isProcessing = true;
 
   try {
-    const { pipeline } = await import('@xenova/transformers');
+    const { pipeline } = await import("@xenova/transformers");
 
-    transcriber = await pipeline(
-      'automatic-speech-recognition',
-      `Xenova/whisper-${modelSize}`,
-      {
-        progress_callback: (progress: any) => {
-          if (progress.status === 'progress') {
-            postMessage({
-              type: 'progress',
-              progress: progress.progress || 0,
-              stage: `加载模型 (${modelSize})`,
-              _id: progress.jobId || 0,
-            });
-          }
-        },
-      }
-    );
+    transcriber = await pipeline("automatic-speech-recognition", `Xenova/whisper-${modelSize}`, {
+      progress_callback: (progress: any) => {
+        if (progress.status === "progress") {
+          postMessage({
+            type: "progress",
+            progress: progress.progress || 0,
+            stage: `加载模型 (${modelSize})`,
+            _id: progress.jobId || 0,
+          });
+        }
+      },
+    });
 
     isModelLoaded = true;
     isProcessing = false;
   } catch (error) {
-    console.error('Failed to load Whisper model:', error);
+    console.error("Failed to load Whisper model:", error);
     isProcessing = false;
     throw error;
   }
 }
 
-async function transcribe(audioData: number[] | Blob | undefined, options: WhisperWorkerOptions = {}) {
+async function transcribe(
+  audioData: number[] | Blob | undefined,
+  options: WhisperWorkerOptions = {},
+) {
   if (!isModelLoaded) {
     await loadModel(options);
   }
 
   if (!audioData) {
-    throw new Error('No audio data provided');
+    throw new Error("No audio data provided");
   }
 
   isProcessing = true;
@@ -140,31 +145,31 @@ async function transcribe(audioData: number[] | Blob | undefined, options: Whisp
     const resampled = resampleAudio(audio, fromRate, targetSampleRate);
 
     postMessage({
-      type: 'progress',
+      type: "progress",
       progress: 0,
-      stage: '开始转录',
+      stage: "开始转录",
       _id: jobId,
     });
 
     const output = await transcriber(resampled, {
-      language: options.language || 'english',
-      task: options.task || 'automatic-speech-recognition',
+      language: options.language || "english",
+      task: options.task || "automatic-speech-recognition",
       chunk_length_s: options.chunkLengthS || 30,
       stride_length_s: options.strideLengthS || 5,
       return_timestamps: true,
     });
 
     postMessage({
-      type: 'progress',
+      type: "progress",
       progress: 100,
-      stage: '转录完成',
+      stage: "转录完成",
       _id: jobId,
     });
 
     const result = parseOutput(output);
 
     postMessage({
-      type: 'complete',
+      type: "complete",
       result,
       segments: result.segments,
       _id: jobId,
@@ -172,10 +177,10 @@ async function transcribe(audioData: number[] | Blob | undefined, options: Whisp
 
     isProcessing = false;
   } catch (error) {
-    console.error('Transcription failed:', error);
+    console.error("Transcription failed:", error);
     postMessage({
-      type: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      type: "error",
+      error: error instanceof Error ? error.message : "Unknown error",
       _id: jobId,
     });
     isProcessing = false;
@@ -185,29 +190,29 @@ async function transcribe(audioData: number[] | Blob | undefined, options: Whisp
 function parseOutput(output: any): WhisperResult {
   if (!output) {
     return {
-      text: '',
+      text: "",
       segments: [],
-      language: 'en',
+      language: "en",
     };
   }
 
   // Transformers.js 返回的格式处理
   if (output.chunks && Array.isArray(output.chunks)) {
     return {
-      text: output.text || '',
+      text: output.text || "",
       segments: output.chunks.map((chunk: any) => ({
         start: chunk.timestamp?.[0] || 0,
         end: chunk.timestamp?.[1] || 0,
-        text: chunk.text || '',
+        text: chunk.text || "",
       })),
-      language: output.language || 'en',
+      language: output.language || "en",
     };
   }
 
   return {
-    text: output.text || '',
+    text: output.text || "",
     segments: [],
-    language: 'en',
+    language: "en",
   };
 }
 
@@ -237,7 +242,7 @@ function cancel(jobId: number) {
   if (pendingJobs.has(jobId)) {
     pendingJobs.delete(jobId);
     postMessage({
-      type: 'aborted',
+      type: "aborted",
       _id: jobId,
     });
   }
@@ -252,65 +257,64 @@ self.onmessage = (e: MessageEvent<WhisperWorkerMessage>) => {
 
   try {
     switch (type) {
-      case 'loadModel':
+      case "loadModel":
         pendingJobs.set(_id, e.data);
         loadModel(e.data.options)
           .then(() => {
             postMessage({
-              type: 'status',
+              type: "status",
               isModelLoaded: true,
               isProcessing: false,
               _id,
             });
           })
-          .catch(error => {
+          .catch((error) => {
             postMessage({
-              type: 'error',
+              type: "error",
               error: error.message,
               _id,
             });
           });
         break;
 
-      case 'transcribe':
+      case "transcribe":
         pendingJobs.set(_id, e.data);
-        transcribe(e.data.audioData, e.data.options)
-          .catch(error => {
-            postMessage({
-              type: 'error',
-              error: error.message,
-              _id,
-            });
+        transcribe(e.data.audioData, e.data.options).catch((error) => {
+          postMessage({
+            type: "error",
+            error: error.message,
+            _id,
           });
+        });
         break;
 
-      case 'getStatus':
+      case "getStatus":
         postMessage({
-          type: 'status',
+          type: "status",
           isModelLoaded,
           isProcessing,
           _id,
         });
         break;
 
-      case 'cancel':
+      case "cancel":
         cancel(_id);
         break;
 
-      case 'abort':
+      case "abort":
         // 取消所有待处理任务
         pendingJobs.clear();
         isProcessing = false;
         postMessage({
-          type: 'aborted',
+          type: "aborted",
           _id,
         });
         break;
     }
   } catch (error) {
     postMessage({
-      type: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      type: "error",
+      error: error instanceof Error ? error.message : "Unknown error",
       _id,
     });
   }

@@ -28,6 +28,7 @@
 ### Task 1.1: 更新 Cargo.toml 依赖
 
 **Files:**
+
 - Modify: `wasm/Cargo.toml`
 
 **Step 1: 添加新依赖**
@@ -86,6 +87,7 @@ git commit -m "feat(wasm): add dependencies for video processing"
 ### Task 1.2: 创建模块结构
 
 **Files:**
+
 - Create: `wasm/src/database/mod.rs`
 - Create: `wasm/src/video/mod.rs`
 - Create: `wasm/src/audio/mod.rs`
@@ -163,6 +165,7 @@ git commit -m "feat(wasm): add module structure for video processing"
 ### Task 2.1: 创建数据库 Schema
 
 **Files:**
+
 - Create: `wasm/src/database/schema.rs`
 
 **Step 1: 定义数据结构**
@@ -316,6 +319,7 @@ git commit -m "feat(wasm): add database schema definitions"
 ### Task 2.2: 实现数据库连接
 
 **Files:**
+
 - Create: `wasm/src/database/connection.rs`
 
 **Step 1: 实现数据库连接类**
@@ -407,6 +411,7 @@ git commit -m "feat(wasm): implement database connection wrapper"
 ### Task 3.1: 创建视频解码器
 
 **Files:**
+
 - Create: `app/lib/video/decoder.ts`
 - Create: `app/lib/video/index.ts`
 
@@ -448,11 +453,11 @@ export class VideoDecoder {
    */
   async loadFromUrl(url: string, options?: VideoDecoderOptions): Promise<VideoMetadata> {
     return new Promise((resolve, reject) => {
-      const video = document.createElement('video');
-      video.crossOrigin = 'anonymous';
-      video.preload = 'metadata';
+      const video = document.createElement("video");
+      video.crossOrigin = "anonymous";
+      video.preload = "metadata";
 
-      video.addEventListener('loadedmetadata', () => {
+      video.addEventListener("loadedmetadata", () => {
         this.videoElement = video;
         this.metadata = {
           duration: video.duration,
@@ -464,7 +469,7 @@ export class VideoDecoder {
         resolve(this.metadata);
       });
 
-      video.addEventListener('error', (e) => {
+      video.addEventListener("error", (e) => {
         reject(new Error(`Failed to load video: ${e}`));
       });
 
@@ -477,7 +482,7 @@ export class VideoDecoder {
    */
   async extractFrame(timestamp: number): Promise<Blob> {
     if (!this.videoElement) {
-      throw new Error('Video not loaded');
+      throw new Error("Video not loaded");
     }
 
     const video = this.videoElement;
@@ -485,38 +490,45 @@ export class VideoDecoder {
 
     await new Promise<void>((resolve) => {
       const onSeeked = () => {
-        video.removeEventListener('seeked', onSeeked);
+        video.removeEventListener("seeked", onSeeked);
         resolve();
       };
-      video.addEventListener('seeked', onSeeked);
+      video.addEventListener("seeked", onSeeked);
     });
 
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
 
     if (!ctx) {
-      throw new Error('Failed to get canvas context');
+      throw new Error("Failed to get canvas context");
     }
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     return new Promise((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (blob) {
-          resolve(blob);
-        } else {
-          reject(new Error('Failed to capture frame'));
-        }
-      }, 'image/jpeg', 0.85);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error("Failed to capture frame"));
+          }
+        },
+        "image/jpeg",
+        0.85,
+      );
     });
   }
 
   /**
    * 提取多个帧
    */
-  async extractFrames(timestamps: number[], onProgress?: (current: number, total: number) => void): Promise<Blob[]> {
+  async extractFrames(
+    timestamps: number[],
+    onProgress?: (current: number, total: number) => void,
+  ): Promise<Blob[]> {
     const frames: Blob[] = [];
     for (let i = 0; i < timestamps.length; i++) {
       const frame = await this.extractFrame(timestamps[i]);
@@ -538,7 +550,7 @@ export class VideoDecoder {
    */
   destroy(): void {
     if (this.videoElement) {
-      this.videoElement.src = '';
+      this.videoElement.src = "";
       this.videoElement.load();
       this.videoElement = null;
     }
@@ -552,7 +564,7 @@ export class VideoDecoder {
 ```typescript
 // app/lib/video/index.ts
 
-export * from './decoder';
+export * from "./decoder";
 ```
 
 **Step 3: 创建测试文件**
@@ -560,16 +572,16 @@ export * from './decoder';
 ```typescript
 // app/lib/video/decoder.test.ts
 
-import { describe, it, expect, beforeEach, afterEach } from '@playwright/test';
+import { describe, it, expect, beforeEach, afterEach } from "@playwright/test";
 
-describe('VideoDecoder', () => {
-  let decoder: typeof import('./decoder').VideoDecoder;
+describe("VideoDecoder", () => {
+  let decoder: typeof import("./decoder").VideoDecoder;
 
   beforeEach(async () => {
-    decoder = (await import('./decoder')).VideoDecoder;
+    decoder = (await import("./decoder")).VideoDecoder;
   });
 
-  it('should load video metadata', async () => {
+  it("should load video metadata", async () => {
     const instance = new decoder();
     // 需要一个测试视频文件
     // const metadata = await instance.loadFromFile(testVideoFile);
@@ -590,6 +602,7 @@ git commit -m "feat: add video decoder class"
 ### Task 3.2: 创建音频提取器
 
 **Files:**
+
 - Create: `app/lib/video/audio-extractor.ts`
 
 **Step 1: 实现音频提取器**
@@ -598,8 +611,8 @@ git commit -m "feat: add video decoder class"
 // app/lib/video/audio-extractor.ts
 
 export interface AudioExtractionOptions {
-  sampleRate?: number;  // 默认 16000 (Whisper 要求)
-  channels?: number;    // 默认 1 (单声道)
+  sampleRate?: number; // 默认 16000 (Whisper 要求)
+  channels?: number; // 默认 1 (单声道)
 }
 
 export class AudioExtractor {
@@ -610,12 +623,9 @@ export class AudioExtractor {
    */
   async extractFromVideo(
     videoElement: HTMLVideoElement,
-    options: AudioExtractionOptions = {}
+    options: AudioExtractionOptions = {},
   ): Promise<AudioBuffer> {
-    const {
-      sampleRate = 16000,
-      channels = 1,
-    } = options;
+    const { sampleRate = 16000, channels = 1 } = options;
 
     // 创建 AudioContext
     this.audioContext = new AudioContext({ sampleRate });
@@ -643,7 +653,7 @@ export class AudioExtractor {
       };
 
       mediaRecorder.onstop = async () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const blob = new Blob(chunks, { type: "audio/webm" });
         const arrayBuffer = await blob.arrayBuffer();
         const audioBuffer = await this.audioContext!.decodeAudioData(arrayBuffer);
 
@@ -673,7 +683,7 @@ export class AudioExtractor {
   private resampleAudioBuffer(
     audioBuffer: AudioBuffer,
     targetSampleRate: number,
-    targetChannels: number
+    targetChannels: number,
   ): AudioBuffer {
     const numberOfChannels = audioBuffer.numberOfChannels;
     const length = audioBuffer.length;
@@ -686,11 +696,7 @@ export class AudioExtractor {
     // 创建新的音频缓冲区
     const ratio = sampleRate / targetSampleRate;
     const newLength = Math.round(length / ratio);
-    const offlineContext = new OfflineAudioContext(
-      targetChannels,
-      newLength,
-      targetSampleRate
-    );
+    const offlineContext = new OfflineAudioContext(targetChannels, newLength, targetSampleRate);
 
     const source = offlineContext.createBufferSource();
     source.buffer = audioBuffer;
@@ -719,18 +725,18 @@ export class AudioExtractor {
       }
     };
 
-    writeString(0, 'RIFF');
+    writeString(0, "RIFF");
     view.setUint32(4, 36 + length * numberOfChannels * 2, true);
-    writeString(8, 'WAVE');
-    writeString(12, 'fmt ');
+    writeString(8, "WAVE");
+    writeString(12, "fmt ");
     view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);  // PCM
+    view.setUint16(20, 1, true); // PCM
     view.setUint16(22, numberOfChannels, true);
     view.setUint32(24, sampleRate, true);
     view.setUint32(28, sampleRate * numberOfChannels * 2, true);
     view.setUint16(32, numberOfChannels * 2, true);
     view.setUint16(34, bitDepth, true);
-    writeString(36, 'data');
+    writeString(36, "data");
     view.setUint32(40, length * numberOfChannels * 2, true);
 
     // 写入音频数据
@@ -743,7 +749,7 @@ export class AudioExtractor {
     for (let i = 0; i < length; i++) {
       for (let channel = 0; channel < numberOfChannels; channel++) {
         const sample = Math.max(-1, Math.min(1, channels[channel][i]));
-        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
         offset += 2;
       }
     }
@@ -768,8 +774,8 @@ export class AudioExtractor {
 ```typescript
 // app/lib/video/index.ts
 
-export * from './decoder';
-export * from './audio-extractor';
+export * from "./decoder";
+export * from "./audio-extractor";
 ```
 
 **Step 3: 提交**
@@ -786,6 +792,7 @@ git commit -m "feat: add audio extractor for Whisper"
 ### Task 4.1: 创建 Whisper WASM 封装
 
 **Files:**
+
 - Create: `wasm/src/speech/whisper.rs`
 
 **Step 1: 实现 Whisper 封装结构**
@@ -936,6 +943,7 @@ git commit -m "feat(wasm): add Whisper WASM wrapper"
 ### Task 4.2: 创建前端 Whisper 处理器
 
 **Files:**
+
 - Create: `app/lib/models/whisper.ts`
 
 **Step 1: 实现 Whisper 处理器**
@@ -951,12 +959,12 @@ export interface WhisperSegment {
 }
 
 export interface WhisperConfig {
-  model: 'tiny' | 'base' | 'small';
-  language: 'zh' | 'en' | 'auto';
+  model: "tiny" | "base" | "small";
+  language: "zh" | "en" | "auto";
 }
 
 export interface WhisperProgress {
-  stage: 'loading_model' | 'processing' | 'completed';
+  stage: "loading_model" | "processing" | "completed";
   progress: number;
   segment?: WhisperSegment;
 }
@@ -978,7 +986,7 @@ export class WhisperProcessor {
 
     // 模拟加载进度
     for (let i = 0; i <= 100; i += 10) {
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
       onProgress?.(i);
     }
 
@@ -990,26 +998,26 @@ export class WhisperProcessor {
    */
   async transcribe(
     audioBuffer: AudioBuffer,
-    onProgress?: (progress: WhisperProgress) => void
+    onProgress?: (progress: WhisperProgress) => void,
   ): Promise<WhisperSegment[]> {
     if (!this.modelLoaded) {
-      throw new Error('Model not loaded. Call loadModel() first.');
+      throw new Error("Model not loaded. Call loadModel() first.");
     }
 
-    onProgress?.({ stage: 'processing', progress: 0 });
+    onProgress?.({ stage: "processing", progress: 0 });
 
     // TODO: 实际调用 Whisper WASM
     // 目前返回模拟数据
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const mockSegments: WhisperSegment[] = [
-      { start: 0.0, end: 2.5, text: '这是第一句话', confidence: 0.95 },
-      { start: 2.5, end: 5.0, text: '这是第二句话', confidence: 0.92 },
-      { start: 5.0, end: 8.0, text: '这是第三句话', confidence: 0.88 },
+      { start: 0.0, end: 2.5, text: "这是第一句话", confidence: 0.95 },
+      { start: 2.5, end: 5.0, text: "这是第二句话", confidence: 0.92 },
+      { start: 5.0, end: 8.0, text: "这是第三句话", confidence: 0.88 },
     ];
 
-    onProgress?.({ stage: 'completed', progress: 100 });
+    onProgress?.({ stage: "completed", progress: 100 });
 
     return mockSegments;
   }
@@ -1028,7 +1036,7 @@ export class WhisperProcessor {
 ```typescript
 // app/lib/models/index.ts
 
-export * from './whisper';
+export * from "./whisper";
 ```
 
 **Step 3: 提交**
@@ -1045,6 +1053,7 @@ git commit -m "feat: add Whisper processor wrapper"
 ### Task 5.1: 实现帧提取器
 
 **Files:**
+
 - Create: `wasm/src/frames/extractor.rs`
 - Create: `app/lib/video/frame-extractor.ts`
 
@@ -1107,11 +1116,11 @@ pub use extractor::FrameExtractor;
 ```typescript
 // app/lib/video/frame-extractor.ts
 
-import type { VideoDecoder } from './decoder';
+import type { VideoDecoder } from "./decoder";
 
 export interface FrameExtractionOptions {
-  interval?: number;  // 毫秒，默认 5000
-  quality?: number;   // JPEG 质量 0-1，默认 0.85
+  interval?: number; // 毫秒，默认 5000
+  quality?: number; // JPEG 质量 0-1，默认 0.85
   onFrame?: (timestamp: number, blob: Blob) => void;
   onProgress?: (current: number, total: number) => void;
 }
@@ -1142,7 +1151,7 @@ export class FrameExtractor {
   async extractFrames(): Promise<ExtractedFrame[]> {
     const metadata = this.decoder.getMetadata();
     if (!metadata) {
-      throw new Error('Video metadata not available');
+      throw new Error("Video metadata not available");
     }
 
     const durationMs = metadata.duration * 1000;
@@ -1192,6 +1201,7 @@ git commit -m "feat: add frame extractor"
 ### Task 5.2: 实现 OCR 封装
 
 **Files:**
+
 - Create: `wasm/src/ocr/paddle.rs`
 - Create: `app/lib/models/paddleocr.ts`
 
@@ -1276,7 +1286,7 @@ export class PaddleOCRProcessor {
 
     // TODO: 实际加载 PaddleOCR WASM
     for (let i = 0; i <= 100; i += 10) {
-      await new Promise(resolve => setTimeout(resolve, 30));
+      await new Promise((resolve) => setTimeout(resolve, 30));
       onProgress?.(i);
     }
 
@@ -1285,14 +1295,14 @@ export class PaddleOCRProcessor {
 
   async recognize(imageBlob: Blob): Promise<OCRResult> {
     if (!this.modelLoaded) {
-      throw new Error('Model not loaded');
+      throw new Error("Model not loaded");
     }
 
     // TODO: 实际 OCR
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     return {
-      text: '示例文本',
+      text: "示例文本",
       confidence: 0.95,
     };
   }
@@ -1313,8 +1323,8 @@ export class PaddleOCRProcessor {
 ```typescript
 // app/lib/models/index.ts
 
-export * from './whisper';
-export * from './paddleocr';
+export * from "./whisper";
+export * from "./paddleocr";
 ```
 
 **Step 5: 提交**
@@ -1331,6 +1341,7 @@ git commit -m "feat: add PaddleOCR wrapper"
 ### Task 6.1: 实现文本总结引擎
 
 **Files:**
+
 - Create: `wasm/src/ai/summarizer.rs`
 
 **Step 1: 实现总结引擎**
@@ -1497,6 +1508,7 @@ git commit -m "feat(wasm): add text summarizer"
 ### Task 6.2: 实现章节分割
 
 **Files:**
+
 - Create: `wasm/src/ai/chapterizer.rs`
 
 **Step 1: 实现章节分割器**
@@ -1653,6 +1665,7 @@ git commit -m "feat(wasm): add chapterizer"
 ### Task 7.1: 实现 PPTX 生成器
 
 **Files:**
+
 - Create: `wasm/src/output/pptx.rs`
 
 **Step 1: 实现 PPTX 生成器**
@@ -2178,6 +2191,7 @@ git commit -m "feat(wasm): add PPTX generator"
 ### Task 8.1: 创建视频上传组件
 
 **Files:**
+
 - Create: `app/components/video/VideoUploader.tsx`
 - Create: `app/components/video/index.ts`
 
@@ -2343,7 +2357,7 @@ export function VideoUploader({ onVideoSelect, className }: VideoUploaderProps) 
 ```typescript
 // app/components/video/index.ts
 
-export * from './VideoUploader';
+export * from "./VideoUploader";
 ```
 
 **Step 3: 提交**
@@ -2358,6 +2372,7 @@ git commit -m "feat: add video uploader component"
 ### Task 8.2: 创建视频处理页面
 
 **Files:**
+
 - Create: `app/[locale]/video/page.tsx`
 
 **Step 1: 实现视频处理页面**
@@ -2539,6 +2554,7 @@ git commit -m "feat: add video processing page"
 ### Task 9.1: 更新构建配置
 
 **Files:**
+
 - Modify: `wasm/Cargo.toml`
 - Modify: `build-wasm.js`
 
@@ -2565,6 +2581,7 @@ git commit -m "build: update wasm build configuration"
 ### Task 9.2: 编写测试
 
 **Files:**
+
 - Create: `e2e/video-processing.spec.ts`
 
 **Step 1: E2E 测试**
@@ -2572,35 +2589,35 @@ git commit -m "build: update wasm build configuration"
 ```typescript
 // e2e/video-processing.spec.ts
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('Video Processing', () => {
+test.describe("Video Processing", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/video');
+    await page.goto("/video");
   });
 
-  test('should show video uploader', async ({ page }) => {
-    await expect(page.locator('text=视频转 PPT/笔记')).toBeVisible();
-    await expect(page.locator('text=本地文件')).toBeVisible();
-    await expect(page.locator('text=视频 URL')).toBeVisible();
+  test("should show video uploader", async ({ page }) => {
+    await expect(page.locator("text=视频转 PPT/笔记")).toBeVisible();
+    await expect(page.locator("text=本地文件")).toBeVisible();
+    await expect(page.locator("text=视频 URL")).toBeVisible();
   });
 
-  test('should accept file upload', async ({ page }) => {
+  test("should accept file upload", async ({ page }) => {
     const fileInput = page.locator('input[type="file"]');
     const testFile = {
-      name: 'test-video.mp4',
-      mimeType: 'video/mp4',
-      buffer: Buffer.from('fake video content'),
+      name: "test-video.mp4",
+      mimeType: "video/mp4",
+      buffer: Buffer.from("fake video content"),
     };
 
     await fileInput.setInputFiles(testFile);
-    await expect(page.locator('text=开始处理')).toBeVisible();
+    await expect(page.locator("text=开始处理")).toBeVisible();
   });
 
-  test('should accept URL input', async ({ page }) => {
-    await page.click('text=视频 URL');
+  test("should accept URL input", async ({ page }) => {
+    await page.click("text=视频 URL");
     const urlInput = page.locator('input[type="url"]');
-    await urlInput.fill('https://www.youtube.com/watch?v=test');
+    await urlInput.fill("https://www.youtube.com/watch?v=test");
 
     const loadButton = page.locator('button:has-text("加载")');
     await expect(loadButton).toBeEnabled();

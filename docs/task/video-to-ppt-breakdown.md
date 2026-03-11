@@ -6,12 +6,12 @@
 
 ## 技术选型（已确认）
 
-| 组件 | 选择 | 备注 |
-|------|------|------|
-| OCR | PaddleOCR WASM | 中文识别好，~100MB |
-| 语音识别 | Whisper WASM | 高准确度，~200MB |
-| AI 总结 | Rust 规则引擎 | 简化版，不依赖大模型 |
-| 优先级 | 语音识别 + 字幕 | 第一阶段 |
+| 组件     | 选择            | 备注                 |
+| -------- | --------------- | -------------------- |
+| OCR      | PaddleOCR WASM  | 中文识别好，~100MB   |
+| 语音识别 | Whisper WASM    | 高准确度，~200MB     |
+| AI 总结  | Rust 规则引擎   | 简化版，不依赖大模型 |
+| 优先级   | 语音识别 + 字幕 | 第一阶段             |
 
 ---
 
@@ -22,11 +22,13 @@
 **文件**: `wasm/src/video/`
 
 **任务**:
+
 - [ ] 创建 `wasm/src/video/mod.rs` - 模块声明
 - [ ] 创建 `wasm/src/video/processor.rs` - 视频处理器结构体
 - [ ] 创建 `wasm/src/video/decoder.rs` - 视频解码器接口
 
 **接口设计**:
+
 ```rust
 #[wasm_bindgen]
 pub struct VideoProcessor {
@@ -55,11 +57,13 @@ impl VideoProcessor {
 **文件**: `app/lib/video-decoder.ts`
 
 **任务**:
+
 - [ ] 实现 VideoDecoder 类
 - [ ] 使用 HTML5 Video API + Canvas 提取帧
 - [ ] 实现音频提取（使用 Web Audio API 或 FFmpeg.wasm）
 
 **接口**:
+
 ```typescript
 export class VideoDecoder {
   loadFromFile(file: File): Promise<void>;
@@ -77,6 +81,7 @@ export class VideoDecoder {
 **文件**: `app/workers/`
 
 **任务**:
+
 - [ ] 创建 `video-processor.worker.ts` - 主处理 Worker
 - [ ] 创建 `whisper-processor.worker.ts` - Whisper 专用 Worker
 - [ ] 创建 `worker-pool.ts` - Worker 池管理器
@@ -90,11 +95,13 @@ export class VideoDecoder {
 **文件**: `wasm/src/speech/`
 
 **任务**:
+
 - [ ] 创建 `wasm/src/speech/mod.rs`
 - [ ] 创建 `wasm/src/speech/whisper.rs`
 - [ ] 实现 Whisper WASM JS 绑定接口
 
 **Rust 接口**:
+
 ```rust
 #[wasm_bindgen]
 pub struct WhisperEngine {
@@ -124,20 +131,22 @@ impl WhisperEngine {
 **文件**: `app/lib/whisper-processor.ts`
 
 **任务**:
+
 - [ ] 下载/加载 Whisper WASM 模型
 - [ ] 实现音频预处理（采样率转换、单声道）
 - [ ] 实现分块处理（支持长音频）
 - [ ] 实现进度回调
 
 **接口**:
+
 ```typescript
 export interface WhisperConfig {
-  model: 'tiny' | 'base' | 'small';
-  language: 'zh' | 'en' | 'auto';
+  model: "tiny" | "base" | "small";
+  language: "zh" | "en" | "auto";
 }
 
 export interface WhisperSegment {
-  start: number;  // seconds
+  start: number; // seconds
   end: number;
   text: string;
 }
@@ -155,6 +164,7 @@ export class WhisperProcessor {
 **文件**: `app/lib/audio-extractor.ts`
 
 **任务**:
+
 - [ ] 从视频提取音频轨道
 - [ ] 转换为 WAV 格式
 - [ ] 重采样到 16kHz（Whisper 要求）
@@ -168,12 +178,14 @@ export class WhisperProcessor {
 **文件**: `wasm/src/frames/`
 
 **任务**:
+
 - [ ] 创建 `wasm/src/frames/mod.rs`
 - [ ] 创建 `wasm/src/frames/extractor.rs`
 - [ ] 实现固定间隔提取
 - [ ] 实现场景变化检测（简化版）
 
 **Rust 接口**:
+
 ```rust
 #[wasm_bindgen]
 pub struct FrameExtractor {
@@ -197,6 +209,7 @@ impl FrameExtractor {
 **文件**: `app/lib/frame-extractor.ts`
 
 **任务**:
+
 - [ ] 使用 Canvas API 捕获视频帧
 - [ ] 压缩帧图像（JPEG 质量 0.7）
 - [ ] 存储帧索引（时间戳 → Blob URL）
@@ -210,11 +223,13 @@ impl FrameExtractor {
 **文件**: `wasm/src/ocr/`
 
 **任务**:
+
 - [ ] 创建 `wasm/src/ocr/mod.rs`
 - [ ] 创建 `wasm/src/ocr/paddle.rs`
 - [ ] 实现 PaddleOCR JS 绑定
 
 **Rust 接口**:
+
 ```rust
 #[wasm_bindgen]
 pub struct OCREngine {
@@ -244,6 +259,7 @@ impl OCREngine {
 **文件**: `app/lib/ocr-processor.ts`
 
 **任务**:
+
 - [ ] 加载 PaddleOCR WASM 模型
 - [ ] 实现批量帧 OCR
 - [ ] 实现文本去重和合并
@@ -257,11 +273,13 @@ impl OCREngine {
 **文件**: `wasm/src/ai/`
 
 **任务**:
+
 - [ ] 创建 `wasm/src/ai/mod.rs`
 - [ ] 创建 `wasm/src/ai/summarizer.rs`
 - [ ] 实现基于规则的总结算法
 
 **规则**:
+
 - 移除重复句子（相似度 > 80%）
 - 移除口语填充词（嗯、啊、那个、就是）
 - 合并短句（< 10 字符）
@@ -274,6 +292,7 @@ impl OCREngine {
 **文件**: `wasm/src/structure/`
 
 **任务**:
+
 - [ ] 创建 `wasm/src/structure/mod.rs`
 - [ ] 创建 `wasm/src/structure/chapterizer.rs`
 - [ ] 实现基于时间间隔的章节分割
@@ -288,6 +307,7 @@ impl OCREngine {
 **文件**: `wasm/src/output/`
 
 **任务**:
+
 - [ ] 扩展现有 `wasm/src/parser/markdown.rs`
 - [ ] 添加章节标题
 - [ ] 添加关键帧引用
@@ -299,12 +319,14 @@ impl OCREngine {
 **文件**: `wasm/src/output/pptx.rs`
 
 **任务**:
+
 - [ ] 创建 PPTX 结构（Office Open XML）
 - [ ] 生成标题页
 - [ ] 生成章节页
 - [ ] 生成内容页（文本 + 图片）
 
 **Rust 接口**:
+
 ```rust
 #[wasm_bindgen]
 pub fn generate_pptx(content_json: &str) -> Vec<u8>;
@@ -331,6 +353,7 @@ pub fn generate_pptx(content_json: &str) -> Vec<u8>;
 **文件**: `app/components/VideoUploader.tsx`
 
 **任务**:
+
 - [ ] 拖拽上传区域
 - [ ] YouTube URL 输入
 - [ ] 文件预览
@@ -342,6 +365,7 @@ pub fn generate_pptx(content_json: &str) -> Vec<u8>;
 **文件**: `app/components/VideoProcessor.tsx`
 
 **任务**:
+
 - [ ] 处理步骤显示
 - [ ] 进度条
 - [ ] 取消按钮
@@ -354,6 +378,7 @@ pub fn generate_pptx(content_json: &str) -> Vec<u8>;
 **文件**: `app/components/OutputViewer.tsx`
 
 **任务**:
+
 - [ ] Markdown 预览
 - [ ] PPT 预览（或下载按钮）
 - [ ] 关键帧画廊
@@ -366,6 +391,7 @@ pub fn generate_pptx(content_json: &str) -> Vec<u8>;
 **文件**: `app/[locale]/video/page.tsx`
 
 **任务**:
+
 - [ ] 整合所有组件
 - [ ] 状态管理
 - [ ] 错误处理

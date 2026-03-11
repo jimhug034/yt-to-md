@@ -3,16 +3,16 @@
  * 使用 Transformers.js 或 Whisper.cpp WASM 进行语音识别
  */
 
-import { pipeline, env } from '@xenova/transformers';
+import { pipeline, env } from "@xenova/transformers";
 
 // 配置 transformers.js
 env.allowLocalModels = false;
 env.useBrowserCache = true;
 
 export interface WhisperOptions {
-  model?: 'tiny' | 'base' | 'small' | 'medium' | 'large';
+  model?: "tiny" | "base" | "small" | "medium" | "large";
   language?: string;
-  task?: 'automatic-speech-recognition' | 'automatic-speech-translation';
+  task?: "automatic-speech-recognition" | "automatic-speech-translation";
   chunkLengthS?: number;
   strideLengthS?: number;
 }
@@ -31,7 +31,7 @@ export interface WhisperResult {
 
 export class WhisperModel {
   private transcriber: any = null;
-  private modelSize: string = 'tiny';
+  private modelSize: string = "tiny";
   private isLoaded: boolean = false;
   private isLoading: boolean = false;
   private progressCallback: ((progress: number) => void) | null = null;
@@ -44,24 +44,24 @@ export class WhisperModel {
     if (this.isLoaded || this.isLoading) return;
 
     this.isLoading = true;
-    this.modelSize = options.model || 'tiny';
+    this.modelSize = options.model || "tiny";
 
     try {
       this.transcriber = await pipeline(
-        'automatic-speech-recognition',
+        "automatic-speech-recognition",
         `Xenova/whisper-${this.modelSize}`,
         {
           progress_callback: (progress: any) => {
-            if (this.progressCallback && progress.status === 'progress') {
+            if (this.progressCallback && progress.status === "progress") {
               this.progressCallback(progress.progress || 0);
             }
           },
-        }
+        },
       );
 
       this.isLoaded = true;
     } catch (error) {
-      console.error('Failed to load Whisper model:', error);
+      console.error("Failed to load Whisper model:", error);
       throw error;
     } finally {
       this.isLoading = false;
@@ -74,7 +74,7 @@ export class WhisperModel {
 
   async transcribe(
     audioData: Float32Array | AudioBuffer,
-    options: WhisperOptions = {}
+    options: WhisperOptions = {},
   ): Promise<WhisperResult> {
     if (!this.isLoaded) {
       await this.load(options);
@@ -105,8 +105,8 @@ export class WhisperModel {
 
     // 调用模型
     const output = await this.transcriber(resampled, {
-      language: options.language || 'english',
-      task: options.task || 'automatic-speech-recognition',
+      language: options.language || "english",
+      task: options.task || "automatic-speech-recognition",
       chunk_length_s: options.chunkLengthS || 30,
       stride_length_s: options.strideLengthS || 5,
       return_timestamps: true,
@@ -119,29 +119,29 @@ export class WhisperModel {
   private parseOutput(output: any): WhisperResult {
     if (!output) {
       return {
-        text: '',
+        text: "",
         segments: [],
-        language: 'en',
+        language: "en",
       };
     }
 
     // Transformers.js 返回的格式可能不同
     if (output.chunks && Array.isArray(output.chunks)) {
       return {
-        text: output.text || '',
+        text: output.text || "",
         segments: output.chunks.map((chunk: any) => ({
           start: chunk.timestamp?.[0] || 0,
           end: chunk.timestamp?.[1] || 0,
-          text: chunk.text || '',
+          text: chunk.text || "",
         })),
-        language: output.language || 'en',
+        language: output.language || "en",
       };
     }
 
     return {
-      text: output.text || '',
+      text: output.text || "",
       segments: [],
-      language: 'en',
+      language: "en",
     };
   }
 

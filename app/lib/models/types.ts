@@ -7,16 +7,16 @@
  * Job status enum - 使用首字母大写格式（与 wasm.ts 保持一致）
  */
 export enum JobStatus {
-  Pending = 'Pending',
-  Processing = 'Processing',
-  Completed = 'Completed',
-  Failed = 'Failed',
+  Pending = "Pending",
+  Processing = "Processing",
+  Completed = "Completed",
+  Failed = "Failed",
 }
 
 /**
  * Job status type alias for easier use
  */
-export type JobStatusType = 'Pending' | 'Processing' | 'Completed' | 'Failed';
+export type JobStatusType = "Pending" | "Processing" | "Completed" | "Failed";
 
 /**
  * Video job - main processing job for a video
@@ -122,5 +122,5 @@ export interface ExportOptions {
   includeFrames?: boolean;
   includeSegments?: boolean;
   includeChapters?: boolean;
-  format?: 'json' | 'csv' | 'md';
+  format?: "json" | "csv" | "md";
 }

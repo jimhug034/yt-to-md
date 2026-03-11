@@ -7,14 +7,14 @@
  * Worker 接收从主线程传递来的帧数据并进行处理。
  */
 
-import type { KeyFrame } from '../lib/wasm';
+import type { KeyFrame } from "../lib/wasm";
 
 // ============================================
 // 消息类型定义
 // ============================================
 
 export interface FrameExtractionWorkerMessage {
-  type: 'extractFrames' | 'processFrame' | 'detectScenes' | 'abort' | 'getStatus';
+  type: "extractFrames" | "processFrame" | "detectScenes" | "abort" | "getStatus";
   frames?: FrameInput[];
   videoMetadata?: VideoMetadataInput;
   options?: FrameExtractionOptions;
@@ -46,9 +46,17 @@ export interface FrameExtractionOptions {
 }
 
 export interface FrameExtractionWorkerResponse {
-  type: 'progress' | 'result' | 'sceneChanges' | 'complete' | 'error' | 'status' | 'aborted' | 'requestFrames';
+  type:
+    | "progress"
+    | "result"
+    | "sceneChanges"
+    | "complete"
+    | "error"
+    | "status"
+    | "aborted"
+    | "requestFrames";
   progress?: number;
-  stage?: 'initializing' | 'extracting' | 'processing' | 'detecting' | 'complete';
+  stage?: "initializing" | "extracting" | "processing" | "detecting" | "complete";
   frame?: ExtractedFrameResult;
   frames?: ExtractedFrameResult[];
   sceneChanges?: number[];
@@ -105,23 +113,23 @@ self.onmessage = async (e: MessageEvent<FrameExtractionWorkerMessage>) => {
 
   try {
     switch (message.type) {
-      case 'extractFrames':
+      case "extractFrames":
         await extractFrames(message);
         break;
 
-      case 'processFrame':
+      case "processFrame":
         await processFrame(message);
         break;
 
-      case 'detectScenes':
+      case "detectScenes":
         await detectScenes(message);
         break;
 
-      case 'abort':
+      case "abort":
         abort();
         break;
 
-      case 'getStatus':
+      case "getStatus":
         sendStatus();
         break;
 
@@ -129,9 +137,7 @@ self.onmessage = async (e: MessageEvent<FrameExtractionWorkerMessage>) => {
         sendError(`Unknown message type: ${(message as any).type}`);
     }
   } catch (error) {
-    sendError(
-      error instanceof Error ? error.message : String(error)
-    );
+    sendError(error instanceof Error ? error.message : String(error));
   }
 };
 
@@ -146,7 +152,7 @@ async function extractFrames(message: FrameExtractionWorkerMessage): Promise<voi
   const { videoMetadata, options, jobId } = message;
 
   if (!videoMetadata) {
-    throw new Error('No video metadata provided');
+    throw new Error("No video metadata provided");
   }
 
   // 重置状态
@@ -156,12 +162,9 @@ async function extractFrames(message: FrameExtractionWorkerMessage): Promise<voi
   state.extractedFrames = [];
   state.sceneChanges = [];
 
-  const {
-    interval = 5,
-    detectSceneChange = false,
-  } = options || {};
+  const { interval = 5, detectSceneChange = false } = options || {};
 
-  sendProgress(0, 'initializing');
+  sendProgress(0, "initializing");
 
   // 初始化 WASM 帧提取器
   try {
@@ -197,7 +200,7 @@ async function processFrame(message: FrameExtractionWorkerMessage): Promise<void
   const { frames, options, jobId } = message;
 
   if (!frames || frames.length === 0) {
-    throw new Error('No frame data provided');
+    throw new Error("No frame data provided");
   }
 
   const {
@@ -222,11 +225,7 @@ async function processFrame(message: FrameExtractionWorkerMessage): Promise<void
     // 检测是否为重复帧
     let isDuplicate = false;
     if (deduplicateFrames && state.lastFrameHash) {
-      isDuplicate = await isDuplicateFrame(
-        state.lastFrameHash,
-        hash,
-        duplicateThreshold
-      );
+      isDuplicate = await isDuplicateFrame(state.lastFrameHash, hash, duplicateThreshold);
     }
 
     // 计算运动分数（需要前一帧）
@@ -252,12 +251,7 @@ async function processFrame(message: FrameExtractionWorkerMessage): Promise<void
     state.lastFrameHash = hash;
 
     // 发送进度
-    sendProgress(
-      ((i + 1) / frames.length) * 100,
-      'processing',
-      i + 1,
-      frames.length
-    );
+    sendProgress(((i + 1) / frames.length) * 100, "processing", i + 1, frames.length);
 
     // 检测场景变化
     if (motionScore > motionThreshold) {
@@ -270,7 +264,7 @@ async function processFrame(message: FrameExtractionWorkerMessage): Promise<void
 
   state.isProcessing = false;
 
-  sendProgress(100, 'complete');
+  sendProgress(100, "complete");
   sendComplete(results, state.sceneChanges);
 }
 
@@ -281,7 +275,7 @@ async function detectScenes(message: FrameExtractionWorkerMessage): Promise<void
   const { frames, options } = message;
 
   if (!frames || frames.length === 0) {
-    throw new Error('No frame data provided');
+    throw new Error("No frame data provided");
   }
 
   state.isAborted = false;
@@ -290,7 +284,7 @@ async function detectScenes(message: FrameExtractionWorkerMessage): Promise<void
 
   const { motionThreshold = 0.3 } = options || {};
 
-  sendProgress(0, 'detecting');
+  sendProgress(0, "detecting");
 
   // 计算运动分数
   const motionScores: Array<{ timestamp: number; motionScore: number }> = [];
@@ -309,32 +303,27 @@ async function detectScenes(message: FrameExtractionWorkerMessage): Promise<void
       motionScore,
     });
 
-    sendProgress(
-      ((i + 1) / frames.length) * 50,
-      'detecting',
-      i + 1,
-      frames.length
-    );
+    sendProgress(((i + 1) / frames.length) * 50, "detecting", i + 1, frames.length);
   }
 
   // 使用 WASM 检测场景变化
   try {
-    const { detectSceneChangesWASM } = await import('../lib/wasm');
+    const { detectSceneChangesWASM } = await import("../lib/wasm");
     const sceneChanges = await detectSceneChangesWASM(
       JSON.stringify(motionScores),
-      motionThreshold
+      motionThreshold,
     );
     state.sceneChanges = sceneChanges;
   } catch {
     // 回退到 JS 实现
     state.sceneChanges = motionScores
-      .filter(m => m.motionScore > motionThreshold)
-      .map(m => m.timestamp);
+      .filter((m) => m.motionScore > motionThreshold)
+      .map((m) => m.timestamp);
   }
 
   state.isProcessing = false;
 
-  sendProgress(100, 'detecting');
+  sendProgress(100, "detecting");
   sendSceneChanges(state.sceneChanges);
 }
 
@@ -354,7 +343,7 @@ function abort(): void {
  */
 async function initializeFrameExtractor(interval: number): Promise<void> {
   try {
-    const wasm = await import('../lib/wasm');
+    const wasm = await import("../lib/wasm");
 
     // 创建 FrameExtractor 实例（在 JS 侧调用 WASM 构造函数）
     // 注意：这里需要适配实际的 WASM 导出
@@ -390,11 +379,7 @@ async function calculateFrameHash(imageData: number[]): Promise<string> {
 /**
  * 检测是否为重复帧
  */
-async function isDuplicateFrame(
-  hash1: string,
-  hash2: string,
-  threshold: number
-): Promise<boolean> {
+async function isDuplicateFrame(hash1: string, hash2: string, threshold: number): Promise<boolean> {
   // 简单的哈希比较
   if (hash1 === hash2) return true;
 
@@ -444,15 +429,20 @@ async function calculateBrightness(imageData: number[]): Promise<number> {
     count++;
   }
 
-  return count > 0 ? (sum / count) / 255 : 0;
+  return count > 0 ? sum / count / 255 : 0;
 }
 
 /**
  * 发送进度更新
  */
-function sendProgress(progress: number, stage: 'initializing' | 'extracting' | 'processing' | 'detecting' | 'complete', current?: number, total?: number): void {
+function sendProgress(
+  progress: number,
+  stage: "initializing" | "extracting" | "processing" | "detecting" | "complete",
+  current?: number,
+  total?: number,
+): void {
   const response: FrameExtractionWorkerResponse = {
-    type: 'progress',
+    type: "progress",
     progress,
     stage,
     currentFrame: current,
@@ -466,7 +456,7 @@ function sendProgress(progress: number, stage: 'initializing' | 'extracting' | '
  */
 function sendRequestFrames(timestamps: number[]): void {
   const response: FrameExtractionWorkerResponse = {
-    type: 'requestFrames',
+    type: "requestFrames",
     frameTimestamps: timestamps,
   };
   self.postMessage(response);
@@ -477,7 +467,7 @@ function sendRequestFrames(timestamps: number[]): void {
  */
 function sendFrameResult(frame: ExtractedFrameResult): void {
   const response: FrameExtractionWorkerResponse = {
-    type: 'result',
+    type: "result",
     frame,
   };
   self.postMessage(response);
@@ -488,7 +478,7 @@ function sendFrameResult(frame: ExtractedFrameResult): void {
  */
 function sendComplete(frames: ExtractedFrameResult[], sceneChanges: number[]): void {
   const response: FrameExtractionWorkerResponse = {
-    type: 'complete',
+    type: "complete",
     frames,
     sceneChanges,
   };
@@ -500,7 +490,7 @@ function sendComplete(frames: ExtractedFrameResult[], sceneChanges: number[]): v
  */
 function sendSceneChanges(sceneChanges: number[]): void {
   const response: FrameExtractionWorkerResponse = {
-    type: 'sceneChanges',
+    type: "sceneChanges",
     sceneChanges,
   };
   self.postMessage(response);
@@ -511,7 +501,7 @@ function sendSceneChanges(sceneChanges: number[]): void {
  */
 function sendStatus(): void {
   const response: FrameExtractionWorkerResponse = {
-    type: 'status',
+    type: "status",
     isProcessing: state.isProcessing,
   };
   self.postMessage(response);
@@ -522,7 +512,7 @@ function sendStatus(): void {
  */
 function sendAborted(): void {
   const response: FrameExtractionWorkerResponse = {
-    type: 'aborted',
+    type: "aborted",
   };
   self.postMessage(response);
 }
@@ -532,7 +522,7 @@ function sendAborted(): void {
  */
 function sendError(error: string): void {
   const response: FrameExtractionWorkerResponse = {
-    type: 'error',
+    type: "error",
     error,
   };
   self.postMessage(response);

@@ -5,25 +5,17 @@
  * 提供状态管理和转录方法
  */
 
-'use client';
+"use client";
 
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { WhisperManager } from '../lib/speech';
-import type {
-  TranscriptionState,
-  TranscriptionProgress,
-  AudioData,
-} from '../lib/speech';
-import type {
-  WhisperWorkerOptions,
-  WhisperResult,
-  WhisperSegment,
-} from '../workers';
+import { useState, useCallback, useEffect, useRef } from "react";
+import { WhisperManager } from "../lib/speech";
+import type { TranscriptionState, TranscriptionProgress, AudioData } from "../lib/speech";
+import type { WhisperWorkerOptions, WhisperResult, WhisperSegment } from "../workers";
 
 export interface UseWhisperTranscriptionOptions {
   autoLoad?: boolean; // 是否自动加载模型
-  model?: WhisperWorkerOptions['model'];
-  language?: WhisperWorkerOptions['language'];
+  model?: WhisperWorkerOptions["model"];
+  language?: WhisperWorkerOptions["language"];
 }
 
 export interface UseWhisperTranscriptionReturn {
@@ -44,14 +36,14 @@ export interface UseWhisperTranscriptionReturn {
     audio: AudioData,
     options?: WhisperWorkerOptions & {
       onProgress?: (progress: TranscriptionProgress) => void;
-    }
+    },
   ) => Promise<{ result: WhisperResult; segments: WhisperSegment[] }>;
   cancel: () => Promise<void>;
   reset: () => void;
 }
 
 export function useWhisperTranscription(
-  options: UseWhisperTranscriptionOptions = {}
+  options: UseWhisperTranscriptionOptions = {},
 ): UseWhisperTranscriptionReturn {
   const { autoLoad = false, model, language } = options;
 
@@ -109,7 +101,7 @@ export function useWhisperTranscription(
       audio: AudioData,
       transcribeOptions?: WhisperWorkerOptions & {
         onProgress?: (progress: TranscriptionProgress) => void;
-      }
+      },
     ) => {
       try {
         const response = await WhisperManager.transcribe(audio, {
@@ -129,7 +121,7 @@ export function useWhisperTranscription(
         throw error;
       }
     },
-    [model, language]
+    [model, language],
   );
 
   // 取消

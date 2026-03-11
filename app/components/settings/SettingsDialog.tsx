@@ -4,9 +4,9 @@
  * 用户设置对话框：API Key 配置、语言偏好、模型选择
  */
 
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 import {
   X,
   Settings as SettingsIcon,
@@ -16,32 +16,32 @@ import {
   Languages,
   Cpu,
   Volume2,
-} from 'lucide-react';
+} from "lucide-react";
 
 export interface Settings {
   // OpenAI API
   openaiApiKey?: string;
   // Whisper 设置
-  whisperModel: 'tiny' | 'base' | 'small' | 'medium' | 'large';
+  whisperModel: "tiny" | "base" | "small" | "medium" | "large";
   whisperLanguage: string;
   // OCR 设置
-  ocrLanguage: 'ch' | 'en' | 'korean' | 'japan' | 'auto';
+  ocrLanguage: "ch" | "en" | "korean" | "japan" | "auto";
   ocrEnabled: boolean;
   // PPTX 设置
-  pptxTemplate: 'default' | 'minimal' | 'professional';
+  pptxTemplate: "default" | "minimal" | "professional";
   pptxIncludeFrames: boolean;
   // 存储设置
-  storageBackend: 'rust-sqlite' | 'indexed-db';
+  storageBackend: "rust-sqlite" | "indexed-db";
 }
 
 const DEFAULT_SETTINGS: Settings = {
-  whisperModel: 'tiny',
-  whisperLanguage: 'auto',
-  ocrLanguage: 'auto',
+  whisperModel: "tiny",
+  whisperLanguage: "auto",
+  ocrLanguage: "auto",
   ocrEnabled: true,
-  pptxTemplate: 'default',
+  pptxTemplate: "default",
   pptxIncludeFrames: true,
-  storageBackend: 'rust-sqlite',
+  storageBackend: "rust-sqlite",
 };
 
 interface SettingsDialogProps {
@@ -62,17 +62,17 @@ export function SettingsDialog({
     ...currentSettings,
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'general' | 'whisper' | 'ocr' | 'pptx'>('general');
+  const [activeTab, setActiveTab] = useState<"general" | "whisper" | "ocr" | "pptx">("general");
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
       // 保存到 LocalStorage
-      localStorage.setItem('video-processor-settings', JSON.stringify(settings));
+      localStorage.setItem("video-processor-settings", JSON.stringify(settings));
       onSave(settings);
       onClose();
     } catch (error) {
-      console.error('Failed to save settings:', error);
+      console.error("Failed to save settings:", error);
     } finally {
       setIsSaving(false);
     }
@@ -83,9 +83,9 @@ export function SettingsDialog({
   }, [currentSettings]);
 
   const handleResetToDefaults = useCallback(() => {
-    if (confirm('确定要重置所有设置为默认值吗？')) {
+    if (confirm("确定要重置所有设置为默认值吗？")) {
       setSettings(DEFAULT_SETTINGS);
-      localStorage.removeItem('video-processor-settings');
+      localStorage.removeItem("video-processor-settings");
     }
   }, []);
 
@@ -94,10 +94,7 @@ export function SettingsDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Dialog */}
       <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
@@ -108,12 +105,8 @@ export function SettingsDialog({
               <SettingsIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                设置
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                配置处理选项和偏好
-              </p>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">设置</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">配置处理选项和偏好</p>
             </div>
           </div>
           <button
@@ -127,10 +120,10 @@ export function SettingsDialog({
         {/* Tabs */}
         <div className="flex border-b border-gray-200 dark:border-gray-700">
           {[
-            { id: 'general', label: '通用', icon: SettingsIcon },
-            { id: 'whisper', label: 'Whisper', icon: Volume2 },
-            { id: 'ocr', label: 'OCR', icon: Languages },
-            { id: 'pptx', label: 'PPTX', icon: Cpu },
+            { id: "general", label: "通用", icon: SettingsIcon },
+            { id: "whisper", label: "Whisper", icon: Volume2 },
+            { id: "ocr", label: "OCR", icon: Languages },
+            { id: "pptx", label: "PPTX", icon: Cpu },
           ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -139,8 +132,8 @@ export function SettingsDialog({
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`flex items-center gap-2 px-6 py-3 font-medium text-sm transition-colors border-b-2 ${
                   activeTab === tab.id
-                    ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                    ? "border-blue-600 text-blue-600 dark:text-blue-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -152,7 +145,7 @@ export function SettingsDialog({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          {activeTab === 'general' && (
+          {activeTab === "general" && (
             <div className="space-y-6">
               {/* 存储后端 */}
               <div className="space-y-3">
@@ -162,7 +155,12 @@ export function SettingsDialog({
                 </label>
                 <select
                   value={settings.storageBackend}
-                  onChange={(e) => setSettings({ ...settings, storageBackend: e.target.value as Settings['storageBackend'] })}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      storageBackend: e.target.value as Settings["storageBackend"],
+                    })
+                  }
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="rust-sqlite">Rust SQLite (LocalStorage)</option>
@@ -181,7 +179,7 @@ export function SettingsDialog({
                 </label>
                 <input
                   type="password"
-                  value={settings.openaiApiKey || ''}
+                  value={settings.openaiApiKey || ""}
                   onChange={(e) => setSettings({ ...settings, openaiApiKey: e.target.value })}
                   placeholder="sk-..."
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -193,7 +191,7 @@ export function SettingsDialog({
             </div>
           )}
 
-          {activeTab === 'whisper' && (
+          {activeTab === "whisper" && (
             <div className="space-y-6">
               {/* 模型选择 */}
               <div className="space-y-3">
@@ -202,7 +200,12 @@ export function SettingsDialog({
                 </label>
                 <select
                   value={settings.whisperModel}
-                  onChange={(e) => setSettings({ ...settings, whisperModel: e.target.value as Settings['whisperModel'] })}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      whisperModel: e.target.value as Settings["whisperModel"],
+                    })
+                  }
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="tiny">Tiny（最快，精度较低）</option>
@@ -240,7 +243,7 @@ export function SettingsDialog({
             </div>
           )}
 
-          {activeTab === 'ocr' && (
+          {activeTab === "ocr" && (
             <div className="space-y-6">
               {/* 启用 OCR */}
               <div className="flex items-center justify-between">
@@ -248,19 +251,17 @@ export function SettingsDialog({
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     启用文字识别 (OCR)
                   </label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    从视频帧中提取文字内容
-                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">从视频帧中提取文字内容</p>
                 </div>
                 <button
                   onClick={() => setSettings({ ...settings, ocrEnabled: !settings.ocrEnabled })}
                   className={`relative w-12 h-6 rounded-full transition-colors ${
-                    settings.ocrEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                    settings.ocrEnabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
                   }`}
                 >
                   <span
                     className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                      settings.ocrEnabled ? 'translate-x-6' : ''
+                      settings.ocrEnabled ? "translate-x-6" : ""
                     }`}
                   />
                 </button>
@@ -273,7 +274,12 @@ export function SettingsDialog({
                 </label>
                 <select
                   value={settings.ocrLanguage}
-                  onChange={(e) => setSettings({ ...settings, ocrLanguage: e.target.value as Settings['ocrLanguage'] })}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      ocrLanguage: e.target.value as Settings["ocrLanguage"],
+                    })
+                  }
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   disabled={!settings.ocrEnabled}
                 >
@@ -287,7 +293,7 @@ export function SettingsDialog({
             </div>
           )}
 
-          {activeTab === 'pptx' && (
+          {activeTab === "pptx" && (
             <div className="space-y-6">
               {/* 模板选择 */}
               <div className="space-y-3">
@@ -296,7 +302,12 @@ export function SettingsDialog({
                 </label>
                 <select
                   value={settings.pptxTemplate}
-                  onChange={(e) => setSettings({ ...settings, pptxTemplate: e.target.value as Settings['pptxTemplate'] })}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      pptxTemplate: e.target.value as Settings["pptxTemplate"],
+                    })
+                  }
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="default">默认模板</option>
@@ -311,19 +322,19 @@ export function SettingsDialog({
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     导出时包含关键帧
                   </label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    在幻灯片中包含视频截图
-                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">在幻灯片中包含视频截图</p>
                 </div>
                 <button
-                  onClick={() => setSettings({ ...settings, pptxIncludeFrames: !settings.pptxIncludeFrames })}
+                  onClick={() =>
+                    setSettings({ ...settings, pptxIncludeFrames: !settings.pptxIncludeFrames })
+                  }
                   className={`relative w-12 h-6 rounded-full transition-colors ${
-                    settings.pptxIncludeFrames ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                    settings.pptxIncludeFrames ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
                   }`}
                 >
                   <span
                     className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                      settings.pptxIncludeFrames ? 'translate-x-6' : ''
+                      settings.pptxIncludeFrames ? "translate-x-6" : ""
                     }`}
                   />
                 </button>
@@ -354,7 +365,7 @@ export function SettingsDialog({
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4" />
-              {isSaving ? '保存中...' : '保存设置'}
+              {isSaving ? "保存中..." : "保存设置"}
             </button>
           </div>
         </div>
@@ -377,9 +388,9 @@ export function SettingsButton({ onSettingsChange, settings }: SettingsButtonPro
 
   // 加载已保存的设置
   const [currentSettings, setCurrentSettings] = useState<Partial<Settings>>(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
-        const saved = localStorage.getItem('video-processor-settings');
+        const saved = localStorage.getItem("video-processor-settings");
         return saved ? JSON.parse(saved) : {};
       } catch {
         return {};

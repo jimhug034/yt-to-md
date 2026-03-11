@@ -2,4 +2,4 @@
  * Audio Module Index
  */
 
-export * from './extractor';
+export * from "./extractor";

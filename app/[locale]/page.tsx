@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Youtube, FileText, RefreshCw, AlertCircle, Clock, Languages, Globe, Film } from "lucide-react";
+import {
+  Youtube,
+  FileText,
+  RefreshCw,
+  AlertCircle,
+  Clock,
+  Languages,
+  Globe,
+  Film,
+} from "lucide-react";
 import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter, usePathname } from "@/i18n";
@@ -320,9 +329,7 @@ export default function Home() {
                 title="视频处理"
               >
                 <Film className="h-4 w-4" />
-                <span className="text-sm font-medium hidden sm:inline">
-                  视频处理
-                </span>
+                <span className="text-sm font-medium hidden sm:inline">视频处理</span>
               </Link>
               <button
                 onClick={handleLanguageSwitch}

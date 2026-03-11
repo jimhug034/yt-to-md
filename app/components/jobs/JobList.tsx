@@ -5,9 +5,9 @@
  * 支持查看详情、删除、导出等操作
  */
 
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   Clock,
   Film,
@@ -21,9 +21,9 @@ import {
   XCircle,
   Loader2,
   ChevronRight,
-} from 'lucide-react';
-import { dbManager } from '@/app/lib/database';
-import type { VideoJob } from '@/app/lib/wasm';
+} from "lucide-react";
+import { dbManager } from "@/app/lib/database";
+import type { VideoJob } from "@/app/lib/wasm";
 
 export interface JobListProps {
   onSelectJob?: (job: VideoJob) => void;
@@ -50,9 +50,7 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
       const allJobs = await dbManager.getAllJobs();
 
       // 按创建时间倒序排列
-      const sortedJobs = allJobs
-        .sort((a, b) => b.created_at - a.created_at)
-        .slice(0, limit);
+      const sortedJobs = allJobs.sort((a, b) => b.created_at - a.created_at).slice(0, limit);
 
       // 为每个 job 添加统计信息
       const jobsWithStats = await Promise.all(
@@ -67,12 +65,12 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
             frames_count: frames.length,
             chapters_count: chapters.length,
           };
-        })
+        }),
       );
 
       setJobs(jobsWithStats);
     } catch (error) {
-      console.error('Failed to load jobs:', error);
+      console.error("Failed to load jobs:", error);
     } finally {
       setIsLoading(false);
     }
@@ -85,16 +83,16 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
   }, [loadJobs]);
 
   const handleDeleteJob = useCallback(async (jobId: string) => {
-    if (!confirm('确定要删除此任务吗？此操作不可恢复。')) {
+    if (!confirm("确定要删除此任务吗？此操作不可恢复。")) {
       return;
     }
 
     try {
       await dbManager.deleteJob(jobId);
-      setJobs(jobs.filter(j => j.id !== jobId));
+      setJobs(jobs.filter((j) => j.id !== jobId));
     } catch (error) {
-      console.error('Failed to delete job:', error);
-      alert('删除失败：' + (error instanceof Error ? error.message : '未知错误'));
+      console.error("Failed to delete job:", error);
+      alert("删除失败：" + (error instanceof Error ? error.message : "未知错误"));
     }
   }, []);
 
@@ -102,9 +100,9 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
     try {
       const exportData = await dbManager.exportJob(jobId);
       if (exportData) {
-        const blob = new Blob([exportData], { type: 'application/json' });
+        const blob = new Blob([exportData], { type: "application/json" });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
         a.download = `job-${jobId}.json`;
         document.body.appendChild(a);
@@ -113,8 +111,8 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
         URL.revokeObjectURL(url);
       }
     } catch (error) {
-      console.error('Failed to export job:', error);
-      alert('导出失败：' + (error instanceof Error ? error.message : '未知错误'));
+      console.error("Failed to export job:", error);
+      alert("导出失败：" + (error instanceof Error ? error.message : "未知错误"));
     }
   }, []);
 
@@ -124,11 +122,11 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Completed':
+      case "Completed":
         return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'Failed':
+      case "Failed":
         return <XCircle className="w-4 h-4 text-red-500" />;
-      case 'Processing':
+      case "Processing":
         return <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />;
       default:
         return <Clock className="w-4 h-4 text-yellow-500" />;
@@ -137,11 +135,16 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'Pending': return '等待中';
-      case 'Processing': return '处理中';
-      case 'Completed': return '已完成';
-      case 'Failed': return '失败';
-      default: return status;
+      case "Pending":
+        return "等待中";
+      case "Processing":
+        return "处理中";
+      case "Completed":
+        return "已完成";
+      case "Failed":
+        return "失败";
+      default:
+        return status;
     }
   };
 
@@ -153,7 +156,7 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return '刚刚';
+    if (diffMins < 1) return "刚刚";
     if (diffMins < 60) return `${diffMins} 分钟前`;
     if (diffHours < 24) return `${diffHours} 小时前`;
     if (diffDays < 7) return `${diffDays} 天前`;
@@ -163,7 +166,7 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -172,9 +175,7 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2">
           <Film className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          <h3 className="font-semibold text-gray-900 dark:text-white">
-            处理历史
-          </h3>
+          <h3 className="font-semibold text-gray-900 dark:text-white">处理历史</h3>
         </div>
         <button
           onClick={refreshJobs}
@@ -182,7 +183,9 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
           className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="刷新"
         >
-          <RefreshCw className={`w-4 h-4 text-gray-600 dark:text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`w-4 h-4 text-gray-600 dark:text-gray-400 ${isRefreshing ? "animate-spin" : ""}`}
+          />
         </button>
       </div>
 
@@ -200,13 +203,14 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
           </div>
         ) : (
           jobs.map((job) => (
-            <div key={job.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <div
+              key={job.id}
+              className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            >
               {/* Main Row */}
               <div className="flex items-start gap-4">
                 {/* Status Icon */}
-                <div className="flex-shrink-0 mt-1">
-                  {getStatusIcon(job.status)}
-                </div>
+                <div className="flex-shrink-0 mt-1">{getStatusIcon(job.status)}</div>
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
@@ -263,7 +267,7 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
                   </div>
 
                   {/* Progress Bar (for processing jobs) */}
-                  {job.status === 'Processing' && job.progress > 0 && (
+                  {job.status === "Processing" && job.progress > 0 && (
                     <div className="mt-2 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-blue-500 transition-all duration-300"
@@ -275,7 +279,7 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
 
                 {/* Actions */}
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  {showViewButton && job.status === 'Completed' && (
+                  {showViewButton && job.status === "Completed" && (
                     <button
                       onClick={() => onSelectJob?.(job)}
                       className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -291,7 +295,7 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
                   >
                     <ChevronRight
                       className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform ${
-                        expandedJob === job.id ? 'rotate-90' : ''
+                        expandedJob === job.id ? "rotate-90" : ""
                       }`}
                     />
                   </button>
@@ -318,20 +322,24 @@ export function JobList({ onSelectJob, showViewButton = true, limit = 20 }: JobL
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-gray-500 dark:text-gray-400">任务 ID</span>
-                      <p className="text-gray-900 dark:text-white font-mono text-xs truncate" title={job.id}>
+                      <p
+                        className="text-gray-900 dark:text-white font-mono text-xs truncate"
+                        title={job.id}
+                      >
                         {job.id.slice(0, 8)}...
                       </p>
                     </div>
                     <div>
                       <span className="text-gray-500 dark:text-gray-400">状态</span>
-                      <p className="text-gray-900 dark:text-white">
-                        {getStatusText(job.status)}
-                      </p>
+                      <p className="text-gray-900 dark:text-white">{getStatusText(job.status)}</p>
                     </div>
                     {job.source_url && (
                       <div className="col-span-2">
                         <span className="text-gray-500 dark:text-gray-400">来源</span>
-                        <p className="text-gray-900 dark:text-white text-xs truncate" title={job.source_url}>
+                        <p
+                          className="text-gray-900 dark:text-white text-xs truncate"
+                          title={job.source_url}
+                        >
                           {job.source_url}
                         </p>
                       </div>
@@ -385,12 +393,12 @@ export function CompactJobList({ onSelectJob, currentJobId }: CompactJobListProp
             frames_count: frames.length,
             chapters_count: chapters.length,
           };
-        })
+        }),
       );
 
       setJobs(jobsWithStats);
     } catch (error) {
-      console.error('Failed to load jobs:', error);
+      console.error("Failed to load jobs:", error);
     } finally {
       setIsLoading(false);
     }
@@ -413,9 +421,7 @@ export function CompactJobList({ onSelectJob, currentJobId }: CompactJobListProp
           <Loader2 className="w-4 h-4 animate-spin text-gray-400 mx-auto" />
         </div>
       ) : jobs.length === 0 ? (
-        <div className="text-center py-4 text-xs text-gray-500 dark:text-gray-400">
-          暂无记录
-        </div>
+        <div className="text-center py-4 text-xs text-gray-500 dark:text-gray-400">暂无记录</div>
       ) : (
         <div className="space-y-1">
           {jobs.map((job) => {
@@ -427,19 +433,21 @@ export function CompactJobList({ onSelectJob, currentJobId }: CompactJobListProp
                 onClick={() => onSelectJob(job)}
                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                   isSelected
-                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300'
+                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="truncate flex-1">{job.file_name}</span>
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ml-2 ${
-                    job.status === 'Completed'
-                      ? 'bg-green-500'
-                      : job.status === 'Failed'
-                      ? 'bg-red-500'
-                      : 'bg-yellow-500'
-                  }`} />
+                  <span
+                    className={`w-2 h-2 rounded-full flex-shrink-0 ml-2 ${
+                      job.status === "Completed"
+                        ? "bg-green-500"
+                        : job.status === "Failed"
+                          ? "bg-red-500"
+                          : "bg-yellow-500"
+                    }`}
+                  />
                 </div>
               </button>
             );

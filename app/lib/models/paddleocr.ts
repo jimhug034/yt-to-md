@@ -4,7 +4,7 @@
  * 导出 Rust OCR 模块的类型和函数
  */
 
-import { OcrProcessor } from '../../../wasm/pkg';
+import { OcrProcessor } from "../../../wasm/pkg";
 
 // ============================================
 // 类型定义
@@ -28,7 +28,7 @@ export interface OcrResult {
 }
 
 export interface OcrOptions {
-  language?: 'ch' | 'en' | 'korean' | 'japan' | 'auto';
+  language?: "ch" | "en" | "korean" | "japan" | "auto";
   minConfidence?: number;
   mergeDuplicates?: boolean;
   enableTextCleaning?: boolean;
@@ -41,7 +41,7 @@ export interface OcrOptions {
 class RustOcrModel {
   private processor: OcrProcessor;
 
-  constructor(language: string = 'auto') {
+  constructor(language: string = "auto") {
     this.processor = new OcrProcessor(language);
   }
 

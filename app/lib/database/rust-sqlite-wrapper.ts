@@ -3,7 +3,7 @@
  * 纯 Rust WASM 实现的数据持久化，基于 web-sys LocalStorage API
  */
 
-import initWasm, { RustSQLite3 } from '@/app/lib/pkg';
+import initWasm, { RustSQLite3 } from "@/app/lib/pkg";
 
 let dbInstance: RustSQLite3 | null = null;
 let isInitialized = false;
@@ -26,7 +26,7 @@ export async function initRustSQLite3(): Promise<void> {
   dbInstance.init();
 
   isInitialized = true;
-  console.log('Rust SQLite3 database initialized');
+  console.log("Rust SQLite3 database initialized");
 }
 
 /**
@@ -34,7 +34,7 @@ export async function initRustSQLite3(): Promise<void> {
  */
 function ensureInitialized(): RustSQLite3 {
   if (!dbInstance) {
-    throw new Error('Database not initialized. Call initRustSQLite3() first.');
+    throw new Error("Database not initialized. Call initRustSQLite3() first.");
   }
   return dbInstance;
 }
@@ -51,7 +51,7 @@ export interface JobRow {
   width: number;
   height: number;
   created_at: number;
-  status: 'Pending' | 'Processing' | 'Completed' | 'Failed';
+  status: "Pending" | "Processing" | "Completed" | "Failed";
   progress: number;
   error_message: string | null;
 }
@@ -117,8 +117,8 @@ export function createJob(job: {
     job.duration ?? 0,
     job.width ?? 0,
     job.height ?? 0,
-    job.status ?? 'Pending',
-    job.progress ?? 0
+    job.status ?? "Pending",
+    job.progress ?? 0,
   );
 
   return id;
@@ -180,7 +180,7 @@ export function createSegment(segment: {
     segment.start_time,
     segment.end_time,
     segment.text,
-    segment.confidence ?? 1.0
+    segment.confidence ?? 1.0,
   );
 
   return id;
@@ -210,9 +210,8 @@ export function createFrame(frame: {
   const id = frame.id || generateUUID();
 
   // 转换为 Uint8Array
-  const data = frame.image_data instanceof Uint8Array
-    ? frame.image_data
-    : new Uint8Array(frame.image_data);
+  const data =
+    frame.image_data instanceof Uint8Array ? frame.image_data : new Uint8Array(frame.image_data);
   db.insert_frame(id, frame.job_id, frame.timestamp, data);
 
   return id;
@@ -254,7 +253,7 @@ export function createChapter(chapter: {
     chapter.title,
     chapter.start_time,
     chapter.end_time,
-    chapter.summary ?? ''
+    chapter.summary ?? "",
   );
 
   return id;
@@ -320,9 +319,9 @@ export function clearDatabase(): void {
 // ============================================
 
 function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }

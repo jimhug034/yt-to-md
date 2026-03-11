@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import type { TranscriptSegment } from '@/app/lib/wasm';
-import { MessageSquare, Volume2, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { useEffect, useRef, useState, useCallback } from "react";
+import type { TranscriptSegment } from "@/app/lib/wasm";
+import { MessageSquare, Volume2, Clock, ChevronDown, ChevronUp } from "lucide-react";
 
 interface RealtimeTranscriptProps {
   segments: TranscriptSegment[];
@@ -10,7 +10,11 @@ interface RealtimeTranscriptProps {
   currentTime?: number;
 }
 
-export function RealtimeTranscript({ segments, isProcessing = false, currentTime = 0 }: RealtimeTranscriptProps) {
+export function RealtimeTranscript({
+  segments,
+  isProcessing = false,
+  currentTime = 0,
+}: RealtimeTranscriptProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [expanded, setExpanded] = useState(true);
@@ -21,15 +25,15 @@ export function RealtimeTranscript({ segments, isProcessing = false, currentTime
     const secs = Math.floor(seconds % 60);
 
     if (hours > 0) {
-      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      return `${hours}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
     }
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }, []);
 
   const getConfidenceColor = useCallback((confidence: number) => {
-    if (confidence >= 0.9) return 'text-green-600 dark:text-green-400';
-    if (confidence >= 0.7) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-red-600 dark:text-red-400';
+    if (confidence >= 0.9) return "text-green-600 dark:text-green-400";
+    if (confidence >= 0.7) return "text-yellow-600 dark:text-yellow-400";
+    return "text-red-600 dark:text-red-400";
   }, []);
 
   useEffect(() => {
@@ -47,12 +51,10 @@ export function RealtimeTranscript({ segments, isProcessing = false, currentTime
   }, []);
 
   const activeSegmentIndex = segments.findIndex(
-    (seg) => currentTime >= seg.start_time && currentTime <= seg.end_time
+    (seg) => currentTime >= seg.start_time && currentTime <= seg.end_time,
   );
 
-  const totalDuration = segments.length > 0
-    ? segments[segments.length - 1].end_time
-    : 0;
+  const totalDuration = segments.length > 0 ? segments[segments.length - 1].end_time : 0;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -60,14 +62,16 @@ export function RealtimeTranscript({ segments, isProcessing = false, currentTime
       <div className="px-4 md:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-              isProcessing
-                ? 'bg-blue-100 dark:bg-blue-900/30'
-                : 'bg-gray-100 dark:bg-gray-700'
-            }`}>
-              <MessageSquare className={`w-5 h-5 ${
-                isProcessing ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500'
-              }`} />
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                isProcessing ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-700"
+              }`}
+            >
+              <MessageSquare
+                className={`w-5 h-5 ${
+                  isProcessing ? "text-blue-600 dark:text-blue-400" : "text-gray-500"
+                }`}
+              />
             </div>
             <div>
               <h2 className="text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -99,7 +103,7 @@ export function RealtimeTranscript({ segments, isProcessing = false, currentTime
           <button
             onClick={() => setExpanded(!expanded)}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            aria-label={expanded ? 'Collapse' : 'Expand'}
+            aria-label={expanded ? "Collapse" : "Expand"}
           >
             {expanded ? (
               <ChevronUp className="w-5 h-5 text-gray-500" />
@@ -121,10 +125,7 @@ export function RealtimeTranscript({ segments, isProcessing = false, currentTime
                   <Volume2 className="w-3 h-3" />
                   Auto-scrolling to latest
                 </span>
-                <button
-                  onClick={() => setAutoScroll(false)}
-                  className="hover:underline"
-                >
+                <button onClick={() => setAutoScroll(false)} className="hover:underline">
                   Disable
                 </button>
               </div>
@@ -147,7 +148,7 @@ export function RealtimeTranscript({ segments, isProcessing = false, currentTime
                   )}
                 </div>
                 <p className="text-gray-500 dark:text-gray-400 font-medium">
-                  {isProcessing ? 'Waiting for transcription...' : 'No transcript segments yet'}
+                  {isProcessing ? "Waiting for transcription..." : "No transcript segments yet"}
                 </p>
                 {isProcessing && (
                   <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
@@ -166,10 +167,10 @@ export function RealtimeTranscript({ segments, isProcessing = false, currentTime
                       key={segment.id || index}
                       className={`group flex gap-3 p-3 rounded-lg transition-all duration-200 ${
                         isActive
-                          ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800'
+                          ? "bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800"
                           : isLatest && isProcessing
-                          ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 animate-in slide-in-from-bottom-2 fade-in duration-300'
-                          : 'bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-800/50'
+                            ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 animate-in slide-in-from-bottom-2 fade-in duration-300"
+                            : "bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-800/50"
                       }`}
                     >
                       {/* Timestamp */}
@@ -178,18 +179,22 @@ export function RealtimeTranscript({ segments, isProcessing = false, currentTime
                           {formatTime(segment.start_time)}
                         </span>
                         {segment.confidence && (
-                          <span className={`text-xs font-medium ${getConfidenceColor(segment.confidence)}`}>
+                          <span
+                            className={`text-xs font-medium ${getConfidenceColor(segment.confidence)}`}
+                          >
                             {Math.round(segment.confidence * 100)}%
                           </span>
                         )}
                       </div>
 
                       {/* Text */}
-                      <p className={`text-sm flex-1 leading-relaxed ${
-                        isActive
-                          ? 'text-gray-900 dark:text-gray-100 font-medium'
-                          : 'text-gray-700 dark:text-gray-300'
-                      }`}>
+                      <p
+                        className={`text-sm flex-1 leading-relaxed ${
+                          isActive
+                            ? "text-gray-900 dark:text-gray-100 font-medium"
+                            : "text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
                         {segment.text}
                       </p>
 

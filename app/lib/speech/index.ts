@@ -2,4 +2,4 @@
  * Speech Module Index
  */
 
-export * from './whisper-manager';
+export * from "./whisper-manager";

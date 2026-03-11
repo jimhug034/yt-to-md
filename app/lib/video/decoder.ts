@@ -13,22 +13,23 @@ export interface VideoMetadata {
 export class VideoDecoder {
   private videoElement: HTMLVideoElement | null = null;
 
-  async loadVideo(source: { type: 'file' | 'url'; data: string | File }): Promise<HTMLVideoElement> {
-    const video = document.createElement('video');
-    video.crossOrigin = 'anonymous';
+  async loadVideo(source: {
+    type: "file" | "url";
+    data: string | File;
+  }): Promise<HTMLVideoElement> {
+    const video = document.createElement("video");
+    video.crossOrigin = "anonymous";
     video.muted = true;
     video.playsInline = true;
 
     const url =
-      source.type === 'file'
-        ? URL.createObjectURL(source.data as File)
-        : (source.data as string);
+      source.type === "file" ? URL.createObjectURL(source.data as File) : (source.data as string);
 
     video.src = url;
 
     await new Promise((resolve, reject) => {
-      video.addEventListener('loadedmetadata', resolve);
-      video.addEventListener('error', reject);
+      video.addEventListener("loadedmetadata", resolve);
+      video.addEventListener("error", reject);
     });
 
     this.videoElement = video;
@@ -47,7 +48,7 @@ export class VideoDecoder {
 
   private hasAudioTrack(video: HTMLVideoElement): boolean {
     // 尝试检测音轨
-    if (typeof (video as any).audioTracks !== 'undefined') {
+    if (typeof (video as any).audioTracks !== "undefined") {
       return (video as any).audioTracks?.length > 0;
     }
     // 默认假设有音频
@@ -59,17 +60,17 @@ export class VideoDecoder {
 
     await new Promise((resolve) => {
       const handler = () => {
-        video.removeEventListener('seeked', handler);
+        video.removeEventListener("seeked", handler);
         resolve(undefined);
       };
-      video.addEventListener('seeked', handler);
+      video.addEventListener("seeked", handler);
     });
 
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
     ctx.drawImage(video, 0, 0);
@@ -82,17 +83,17 @@ export class VideoDecoder {
 
       await new Promise((r) => {
         const handler = () => {
-          video.removeEventListener('seeked', handler);
+          video.removeEventListener("seeked", handler);
           r(undefined);
         };
-        video.addEventListener('seeked', handler);
+        video.addEventListener("seeked", handler);
       });
 
-      const canvas = document.createElement('canvas');
+      const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
       if (!ctx) {
         resolve(null);
         return;
@@ -103,8 +104,8 @@ export class VideoDecoder {
         (blob) => {
           resolve(blob);
         },
-        'image/jpeg',
-        quality
+        "image/jpeg",
+        quality,
       );
     });
   }

@@ -13,6 +13,7 @@
 ## Task 1: Rust WASM 模块基础结构
 
 **Files:**
+
 - Create: `wasm/src/speech/mod.rs`
 - Create: `wasm/src/speech/types.rs`
 - Modify: `wasm/src/lib.rs`
@@ -66,11 +67,13 @@ pub enum WhisperLanguage {
 **Step 3: 更新 wasm/src/lib.rs 导出**
 
 在 `wasm/src/lib.rs` 的 `mod` 部分添加：
+
 ```rust
 mod speech;
 ```
 
 在导出部分添加：
+
 ```rust
 pub use speech::{WhisperEngine, AudioProcessor, TranscriptionResult, WhisperLanguage, Segment};
 ```
@@ -92,6 +95,7 @@ git commit -m "feat(speech): add Rust WASM speech module structure"
 ## Task 2: 音频预处理模块
 
 **Files:**
+
 - Create: `wasm/src/speech/audio_processor.rs`
 
 **Step 1: 编写 audio_processor.rs**
@@ -208,6 +212,7 @@ git commit -m "feat(speech): add audio processor module"
 ## Task 3: Whisper 引擎封装
 
 **Files:**
+
 - Create: `wasm/src/speech/whisper.rs`
 - Modify: `wasm/Cargo.toml`
 
@@ -362,6 +367,7 @@ git commit -m "feat(speech): add Whisper engine wrapper"
 ## Task 4: 编译 WASM 模块
 
 **Files:**
+
 - Build: `wasm/pkg/` directory
 
 **Step 1: 编译 Rust WASM**
@@ -386,17 +392,18 @@ git commit -m "build: compile Whisper WASM module"
 ## Task 5: 创建 Whisper Web Worker
 
 **Files:**
+
 - Create: `app/workers/whisper.worker.ts`
 - Modify: `app/workers/index.ts`
 
 **Step 1: 编写 whisper.worker.ts**
 
 ```typescript
-import initWasm, { WhisperEngine, WhisperLanguage } from '@/app/lib/pkg';
-import { pipeline } from '@xenova/transformers';
+import initWasm, { WhisperEngine, WhisperLanguage } from "@/app/lib/pkg";
+import { pipeline } from "@xenova/transformers";
 
 // 禁用本地模型检查
-import { env } from '@xenova/transformers';
+import { env } from "@xenova/transformers";
 env.allowLocalModels = false;
 env.allowRemoteModels = true;
 
@@ -409,29 +416,29 @@ self.onmessage = async (e: MessageEvent) => {
 
   try {
     switch (type) {
-      case 'loadModel':
+      case "loadModel":
         await handleLoadModel(data);
         break;
-      case 'transcribe':
+      case "transcribe":
         await handleTranscribe(data);
         break;
-      case 'cancel':
+      case "cancel":
         handleCancel();
         break;
-      case 'getStatus':
-        postMessage({ type: 'status', loaded: transcriber !== null });
+      case "getStatus":
+        postMessage({ type: "status", loaded: transcriber !== null });
         break;
     }
   } catch (error) {
     postMessage({
-      type: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      type: "error",
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };
 
 async function handleLoadModel(data: { model: string }) {
-  postMessage({ type: 'progress', stage: 'loading', progress: 0 });
+  postMessage({ type: "progress", stage: "loading", progress: 0 });
 
   try {
     // 初始化 Rust WASM
@@ -441,33 +448,33 @@ async function handleLoadModel(data: { model: string }) {
 
     // 加载 Transformers Whisper 模型
     const modelName = `Xenova/whisper-${data.model}`;
-    transcriber = await pipeline('automatic-speech-recognition', modelName, {
+    transcriber = await pipeline("automatic-speech-recognition", modelName, {
       progress_callback: (progress: any) => {
-        if (progress.status === 'downloading') {
+        if (progress.status === "downloading") {
           const percent = progress.progress ? Math.round(progress.progress) : 0;
           postMessage({
-            type: 'progress',
-            stage: 'downloading',
-            progress: Math.min(percent, 95)
+            type: "progress",
+            stage: "downloading",
+            progress: Math.min(percent, 95),
           });
-        } else if (progress.status === 'loading') {
-          postMessage({ type: 'progress', stage: 'loading', progress: 98 });
+        } else if (progress.status === "loading") {
+          postMessage({ type: "progress", stage: "loading", progress: 98 });
         }
       },
     });
 
-    postMessage({ type: 'progress', stage: 'ready', progress: 100 });
+    postMessage({ type: "progress", stage: "ready", progress: 100 });
   } catch (error) {
     postMessage({
-      type: 'error',
-      error: `Failed to load model: ${error}`
+      type: "error",
+      error: `Failed to load model: ${error}`,
     });
   }
 }
 
 async function handleTranscribe(data: { audioData: Float32Array; language?: string }) {
   if (!transcriber) {
-    throw new Error('Model not loaded');
+    throw new Error("Model not loaded");
   }
 
   isCancelled = false;
@@ -476,15 +483,15 @@ async function handleTranscribe(data: { audioData: Float32Array; language?: stri
     const options: any = {
       chunk_length_s: 30,
       stride_length_s: 5,
-      language: data.language === 'auto' ? null : data.language,
-      task: 'transcribe',
+      language: data.language === "auto" ? null : data.language,
+      task: "transcribe",
       return_timestamps: true,
     };
 
     const result = await transcriber(data.audioData, options);
 
     if (isCancelled) {
-      postMessage({ type: 'cancelled' });
+      postMessage({ type: "cancelled" });
       return;
     }
 
@@ -492,8 +499,8 @@ async function handleTranscribe(data: { audioData: Float32Array; language?: stri
     const segments = parseWhisperResult(result);
 
     postMessage({
-      type: 'complete',
-      result: segments
+      type: "complete",
+      result: segments,
     });
   } catch (error) {
     if (isCancelled) return;
@@ -525,7 +532,7 @@ function parseWhisperResult(result: any): any[] {
 **Step 2: 更新 workers/index.ts 添加导出**
 
 ```typescript
-export { default as createWhisperWorker } from './whisper.worker';
+export { default as createWhisperWorker } from "./whisper.worker";
 ```
 
 **Step 3: 运行 TypeScript 检查**
@@ -545,21 +552,22 @@ git commit -m "feat(workers): add Whisper transcription worker"
 ## Task 6: 创建 Whisper 管理器
 
 **Files:**
+
 - Create: `app/lib/speech/whisper-manager.ts`
 - Create: `app/lib/speech/index.ts`
 
 **Step 1: 编写 whisper-manager.ts**
 
 ```typescript
-import type { WhisperSegment } from '@/app/lib/wasm';
+import type { WhisperSegment } from "@/app/lib/wasm";
 
 export interface WhisperConfig {
-  model: 'tiny' | 'base' | 'small';
-  language: 'zh' | 'en' | 'ja' | 'ko' | 'auto';
+  model: "tiny" | "base" | "small";
+  language: "zh" | "en" | "ja" | "ko" | "auto";
 }
 
 export interface TranscribeProgress {
-  stage: 'loading' | 'downloading' | 'processing' | 'complete' | 'error' | 'cancelled';
+  stage: "loading" | "downloading" | "processing" | "complete" | "error" | "cancelled";
   progress: number;
   message?: string;
   segment?: WhisperSegment;
@@ -577,10 +585,7 @@ export class WhisperManager {
       return; // 已初始化
     }
 
-    this.worker = new Worker(
-      new URL('./whisper.worker', import.meta.url),
-      { type: 'module' }
-    );
+    this.worker = new Worker(new URL("./whisper.worker", import.meta.url), { type: "module" });
 
     this.worker.onmessage = (e) => {
       const { type, ...data } = e.data;
@@ -589,7 +594,7 @@ export class WhisperManager {
 
     this.worker.onerror = (error) => {
       onProgress?.({
-        stage: 'error',
+        stage: "error",
         progress: 0,
         message: `Worker error: ${error}`,
       });
@@ -607,36 +612,36 @@ export class WhisperManager {
 
     return new Promise((resolve, reject) => {
       const handler = (e: MessageEvent) => {
-        if (e.data.type === 'progress') {
+        if (e.data.type === "progress") {
           onProgress?.(e.data);
-        } else if (e.data.type === 'ready') {
+        } else if (e.data.type === "ready") {
           this.modelLoaded = true;
           this.currentConfig = config;
           resolve();
-        } else if (e.data.type === 'error') {
+        } else if (e.data.type === "error") {
           reject(new Error(e.data.error));
         }
       };
 
-      this.worker!.addEventListener('message', handler);
+      this.worker!.addEventListener("message", handler);
       this.worker!.postMessage({
-        type: 'loadModel',
+        type: "loadModel",
         data: { model: config.model },
       });
 
       // 清理监听器
       setTimeout(() => {
-        this.worker!.removeEventListener('message', handler);
+        this.worker!.removeEventListener("message", handler);
       }, 30000);
     });
   }
 
   async transcribe(
     audioBuffer: AudioBuffer,
-    onProgress?: ProgressCallback
+    onProgress?: ProgressCallback,
   ): Promise<WhisperSegment[]> {
     if (!this.worker || !this.modelLoaded) {
-      throw new Error('Whisper not initialized. Call loadModel() first.');
+      throw new Error("Whisper not initialized. Call loadModel() first.");
     }
 
     // 准备音频数据
@@ -644,30 +649,30 @@ export class WhisperManager {
 
     return new Promise((resolve, reject) => {
       const handler = (e: MessageEvent) => {
-        if (e.data.type === 'segment' || e.data.type === 'complete') {
-          if (e.data.type === 'complete') {
+        if (e.data.type === "segment" || e.data.type === "complete") {
+          if (e.data.type === "complete") {
             resolve(e.data.result);
-            this.worker!.removeEventListener('message', handler);
-          } else if (e.data.type === 'error') {
+            this.worker!.removeEventListener("message", handler);
+          } else if (e.data.type === "error") {
             reject(new Error(e.data.error));
-            this.worker!.removeEventListener('message', handler);
+            this.worker!.removeEventListener("message", handler);
           }
         }
       };
 
-      this.worker!.addEventListener('message', handler);
+      this.worker!.addEventListener("message", handler);
       this.worker!.postMessage({
-        type: 'transcribe',
+        type: "transcribe",
         data: {
           audioData,
-          language: this.currentConfig?.language || 'auto',
+          language: this.currentConfig?.language || "auto",
         },
       });
     });
   }
 
   cancel(): void {
-    this.worker?.postMessage({ type: 'cancel' });
+    this.worker?.postMessage({ type: "cancel" });
   }
 
   private async prepareAudio(audioBuffer: AudioBuffer): Promise<Float32Array> {
@@ -678,8 +683,8 @@ export class WhisperManager {
     if (audioBuffer.sampleRate !== TARGET_SAMPLE_RATE) {
       const offlineContext = new OfflineAudioContext(
         1,
-        audioBuffer.length * TARGET_SAMPLE_RATE / audioBuffer.sampleRate,
-        TARGET_SAMPLE_RATE
+        (audioBuffer.length * TARGET_SAMPLE_RATE) / audioBuffer.sampleRate,
+        TARGET_SAMPLE_RATE,
       );
       const source = offlineContext.createBufferSource();
       source.buffer = audioBuffer;
@@ -695,36 +700,36 @@ export class WhisperManager {
 
   private mapWorkerMessage(type: string, data: any): TranscribeProgress {
     switch (type) {
-      case 'progress':
+      case "progress":
         return {
           stage: data.stage,
           progress: data.progress,
-          message: data.message || '',
+          message: data.message || "",
         };
-      case 'segment':
+      case "segment":
         return {
-          stage: 'processing',
+          stage: "processing",
           progress: 50,
           segment: data.segment,
         };
-      case 'complete':
+      case "complete":
         return {
-          stage: 'complete',
+          stage: "complete",
           progress: 100,
         };
-      case 'error':
+      case "error":
         return {
-          stage: 'error',
+          stage: "error",
           progress: 0,
           message: data.error,
         };
-      case 'cancelled':
+      case "cancelled":
         return {
-          stage: 'cancelled',
+          stage: "cancelled",
           progress: 0,
         };
       default:
-        return { stage: 'loading', progress: 0 };
+        return { stage: "loading", progress: 0 };
     }
   }
 
@@ -739,7 +744,7 @@ export class WhisperManager {
 **Step 2: 创建 speech/index.ts**
 
 ```typescript
-export { WhisperManager } from './whisper-manager';
+export { WhisperManager } from "./whisper-manager";
 export type { WhisperConfig, TranscribeProgress };
 ```
 
@@ -760,23 +765,24 @@ git commit -m "feat(speech): add Whisper manager"
 ## Task 7: 创建 React Hook
 
 **Files:**
+
 - Create: `app/hooks/useWhisperTranscription.ts`
 - Modify: `app/hooks/index.ts`
 
 **Step 1: 编写 useWhisperTranscription.ts**
 
 ```typescript
-import { useState, useCallback, useRef } from 'react';
-import { WhisperManager, WhisperConfig, TranscribeProgress } from '@/app/lib/speech';
-import type { WhisperSegment } from '@/app/lib/wasm';
+import { useState, useCallback, useRef } from "react";
+import { WhisperManager, WhisperConfig, TranscribeProgress } from "@/app/lib/speech";
+import type { WhisperSegment } from "@/app/lib/wasm";
 
 export function useWhisperTranscription() {
   const [status, setStatus] = useState<
-    'idle' | 'loading' | 'processing' | 'complete' | 'error' | 'cancelled'
-  >('idle');
+    "idle" | "loading" | "processing" | "complete" | "error" | "cancelled"
+  >("idle");
   const [segments, setSegments] = useState<WhisperSegment[]>([]);
   const [progress, setProgress] = useState(0);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const managerRef = useRef<WhisperManager | null>(null);
@@ -791,7 +797,7 @@ export function useWhisperTranscription() {
     const { signal } = abortControllerRef.current;
 
     try {
-      setStatus('loading');
+      setStatus("loading");
       setProgress(0);
       setError(null);
 
@@ -800,9 +806,9 @@ export function useWhisperTranscription() {
         await manager.initialize((progress) => {
           if (signal.aborted) return;
           setProgress(progress.progress);
-          setMessage(progress.message || '');
-          if (progress.stage === 'loading') {
-            setStatus('loading');
+          setMessage(progress.message || "");
+          if (progress.stage === "loading") {
+            setStatus("loading");
           }
         });
         managerRef.current = manager;
@@ -814,87 +820,81 @@ export function useWhisperTranscription() {
       });
 
       if (!signal.aborted) {
-        setStatus('idle');
-        setMessage('模型加载完成');
+        setStatus("idle");
+        setMessage("模型加载完成");
       }
     } catch (err) {
       if (signal.aborted) {
-        setStatus('cancelled');
+        setStatus("cancelled");
       } else {
-        setStatus('error');
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        setStatus("error");
+        setError(err instanceof Error ? err.message : "Unknown error");
       }
     }
   }, []);
 
-  const transcribe = useCallback(
-    async (audioBuffer: AudioBuffer) => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+  const transcribe = useCallback(async (audioBuffer: AudioBuffer) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    abortControllerRef.current = new AbortController();
+    const { signal } = abortControllerRef.current;
+
+    try {
+      setStatus("processing");
+      setSegments([]);
+      setProgress(0);
+      setError(null);
+
+      if (!managerRef.current) {
+        throw new Error("Manager not initialized");
       }
 
-      abortControllerRef.current = new AbortController();
-      const { signal } = abortControllerRef.current;
-
-      try {
-        setStatus('processing');
-        setSegments([]);
-        setProgress(0);
-        setError(null);
-
-        if (!managerRef.current) {
-          throw new Error('Manager not initialized');
+      const results = await managerRef.current.transcribe(audioBuffer, (progress) => {
+        if (signal.aborted) return;
+        handleProgress(progress);
+        if (progress.segment) {
+          setSegments((prev) => [...prev, progress.segment]);
         }
+      });
 
-        const results = await managerRef.current.transcribe(
-          audioBuffer,
-          (progress) => {
-            if (signal.aborted) return;
-            handleProgress(progress);
-            if (progress.segment) {
-              setSegments((prev) => [...prev, progress.segment]);
-            }
-          }
-        );
-
-        if (!signal.aborted) {
-          setSegments(results);
-          setStatus('complete');
-          setProgress(100);
-          setMessage('转录完成');
-        }
-      } catch (err) {
-        if (signal.aborted) {
-          setStatus('cancelled');
-        } else {
-          setStatus('error');
-          setError(err instanceof Error ? err.message : 'Unknown error');
-        }
+      if (!signal.aborted) {
+        setSegments(results);
+        setStatus("complete");
+        setProgress(100);
+        setMessage("转录完成");
       }
-    },
-    []
-  );
+    } catch (err) {
+      if (signal.aborted) {
+        setStatus("cancelled");
+      } else {
+        setStatus("error");
+        setError(err instanceof Error ? err.message : "Unknown error");
+      }
+    }
+  }, []);
 
   const cancel = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     managerRef.current?.cancel();
-    setStatus('cancelled');
+    setStatus("cancelled");
   }, []);
 
   const reset = useCallback(() => {
     cancel();
     setSegments([]);
     setProgress(0);
-    setMessage('');
+    setMessage("");
     setError(null);
-    setStatus('idle');
+    setStatus("idle");
   }, [cancel]);
 
   const handleProgress = (progress: TranscribeProgress) => {
     setProgress(progress.progress);
-    setMessage(progress.message || '');
+    setMessage(progress.message || "");
   };
 
   return {
@@ -914,7 +914,7 @@ export function useWhisperTranscription() {
 **Step 2: 更新 hooks/index.ts**
 
 ```typescript
-export { useWhisperTranscription } from './useWhisperTranscription';
+export { useWhisperTranscription } from "./useWhisperTranscription";
 ```
 
 **Step 3: TypeScript 检查**
@@ -934,21 +934,24 @@ git commit -m "feat(hooks): add useWhisperTranscription hook"
 ## Task 8: 集成到 VideoProcessor
 
 **Files:**
+
 - Modify: `app/components/video/VideoProcessor.tsx`
 
 **Step 1: 在 VideoProcessor 中添加 Whisper 支持**
 
 在 `VideoProcessor.tsx` 中添加导入：
+
 ```typescript
-import { useWhisperTranscription } from '@/app/hooks/useWhisperTranscription';
-import type { TranscriptSegment } from '@/app/lib/wasm';
+import { useWhisperTranscription } from "@/app/hooks/useWhisperTranscription";
+import type { TranscriptSegment } from "@/app/lib/wasm";
 ```
 
 在 `processVideoPipeline` 函数中添加 Whisper 转录步骤：
+
 ```typescript
 // 在 extractKeyFrames 之后添加
 // Step 3: Transcribe audio using Whisper
-updateProgress('transcribing', 60);
+updateProgress("transcribing", 60);
 const whisperSegments = await transcribeAudio(job, videoElement, signal);
 if (signal.aborted) return;
 
@@ -959,18 +962,19 @@ for (const segment of whisperSegments) {
 ```
 
 添加辅助函数：
+
 ```typescript
 const transcribeAudio = async (
   job: VideoJob,
   videoElement: HTMLVideoElement,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<TranscriptSegment[]> => {
   // 提取音频
   const audioBuffer = await audioExtractor.extractAudio(videoElement);
 
   // 转录
   const segments = await whisper.transcribe(audioBuffer);
-  return segments.map(s => ({
+  return segments.map((s) => ({
     ...s,
     job_id: job.id,
   }));
@@ -994,14 +998,15 @@ git commit -m "feat(video): integrate Whisper transcription into VideoProcessor"
 ## Task 9: 添加单元测试
 
 **Files:**
+
 - Create: `app/lib/speech/__tests__/whisper-manager.test.ts`
 
 **Step 1: 编写测试**
 
 ```typescript
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
-describe('WhisperManager', () => {
+describe("WhisperManager", () => {
   let manager: any;
 
   beforeEach(() => {
@@ -1014,15 +1019,15 @@ describe('WhisperManager', () => {
     }));
   });
 
-  it('should initialize successfully', async () => {
-    const { WhisperManager } = await import('../whisper-manager');
+  it("should initialize successfully", async () => {
+    const { WhisperManager } = await import("../whisper-manager");
     manager = new WhisperManager();
     await manager.initialize();
     expect(manager).toBeDefined();
   });
 
-  it('should handle progress callbacks', async () => {
-    const { WhisperManager } = await import('../whisper-manager');
+  it("should handle progress callbacks", async () => {
+    const { WhisperManager } = await import("../whisper-manager");
     manager = new WhisperManager();
 
     const progressCallback = vi.fn();
@@ -1051,46 +1056,47 @@ git commit -m "test(speech): add WhisperManager unit tests"
 ## Task 10: 添加 E2E 测试
 
 **Files:**
+
 - Create: `e2e/whisper-transcription.spec.ts`
 
 **Step 1: 编写 E2E 测试**
 
 ```typescript
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('Whisper Transcription', () => {
-  test('should transcribe uploaded video', async ({ page }) => {
-    await page.goto('/video');
+test.describe("Whisper Transcription", () => {
+  test("should transcribe uploaded video", async ({ page }) => {
+    await page.goto("/video");
 
     // 上传测试视频
     const fileInput = page.locator('input[type="file"]');
-    await fileInput.setInputFiles('test/fixtures/sample-video.mp4');
+    await fileInput.setInputFiles("test/fixtures/sample-video.mp4");
 
     // 等待处理完成
     await expect(page.locator('[data-status="complete"]')).toBeVisible();
 
     // 验证转录结果
-    await expect(page.locator('.transcript-segment')).toHaveCount(10);
+    await expect(page.locator(".transcript-segment")).toHaveCount(10);
   });
 
-  test('should handle model loading progress', async ({ page }) => {
-    await page.goto('/video');
+  test("should handle model loading progress", async ({ page }) => {
+    await page.goto("/video");
 
     // 上传视频
     const fileInput = page.locator('input[type="file"]');
-    await fileInput.setInputFiles('test/fixtures/sample-video.mp4');
+    await fileInput.setInputFiles("test/fixtures/sample-video.mp4");
 
     // 验证进度显示
     await expect(page.locator('[data-stage="downloading"]')).toBeVisible();
     await expect(page.locator('[data-stage="ready"]')).toBeVisible();
   });
 
-  test('should support cancellation', async ({ page }) => {
-    await page.goto('/video');
+  test("should support cancellation", async ({ page }) => {
+    await page.goto("/video");
 
     // 上传视频
     const fileInput = page.locator('input[type="file"]');
-    await fileInput.setInputFiles('test/fixtures/long-video.mp4');
+    await fileInput.setInputFiles("test/fixtures/long-video.mp4");
 
     // 等待处理开始
     await page.waitForTimeout(1000);
